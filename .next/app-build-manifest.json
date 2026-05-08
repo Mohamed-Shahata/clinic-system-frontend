@@ -1,0 +1,130 @@
+{
+  "pages": {
+    "/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/css/app/layout.css",
+      "static/chunks/app/layout.js"
+    ],
+    "/[locale]/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/layout.js"
+    ],
+    "/[locale]/(dashboard)/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/layout.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/receptionist/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/receptionist/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/super-admin/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/super-admin/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/super-admin/extend-subscription/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/super-admin/extend-subscription/page.js"
+    ],
+    "/api/clinics/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/clinics/route.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/super-admin/subscription-requests/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/super-admin/subscription-requests/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/super-admin/directory/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/super-admin/directory/page.js"
+    ],
+    "/api/users/platform-directory/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/users/platform-directory/route.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/super-admin/clinics/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/super-admin/clinics/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/doctor-admin/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/doctor-admin/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/doctor-admin/workspace/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/doctor-admin/workspace/page.js"
+    ],
+    "/api/prescriptions/catalog/[kind]/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/prescriptions/catalog/[kind]/route.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/doctor-admin/appointments/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/doctor-admin/appointments/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/doctor-admin/receptionists/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/doctor-admin/receptionists/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/doctor-admin/patients/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/doctor-admin/patients/page.js"
+    ],
+    "/api/patients/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/patients/route.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/doctor-admin/reports/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/doctor-admin/reports/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/doctor-admin/billing/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/doctor-admin/billing/page.js"
+    ],
+    "/[locale]/(dashboard)/dashboard/doctor-admin/settings/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/[locale]/(dashboard)/dashboard/doctor-admin/settings/page.js"
+    ],
+    "/api/billing/subscription/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/billing/subscription/route.js"
+    ],
+    "/api/users/profile/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/users/profile/route.js"
+    ],
+    "/api/clinics/[clinicId]/status/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/clinics/[clinicId]/status/route.js"
+    ],
+    "/api/billing/subscription-plans/manage/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/billing/subscription-plans/manage/route.js"
+    ]
+  }
+}
