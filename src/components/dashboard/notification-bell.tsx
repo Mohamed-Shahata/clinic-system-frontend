@@ -29,6 +29,7 @@ const typeIcon: Record<string, string> = {
   SUBSCRIPTION_REJECTED: "❌",
   SUBSCRIPTION_EXTENDED: "🎁",
   SUBSCRIPTION_PAYMENT_REQUESTED: "💳",
+  SUBSCRIPTION_EXPIRING_SOON: "⏳",
 };
 
 interface Props {
@@ -59,16 +60,33 @@ export function NotificationBell({ locale }: Props) {
     }
   }, []);
 
-  // Initial load + poll every 60s
+  // Initial load + live updates. A light poll remains as a fallback if the stream drops.
   useEffect(() => {
     void fetchNotifs();
-    const interval = setInterval(() => void fetchNotifs(), 60000);
+    const events = new EventSource("/api/notifications/stream");
+    events.onmessage = (event) => {
+      try {
+        const notification = JSON.parse(event.data) as Notification;
+        if (!notification.id) return;
+        setNotifs((prev) => {
+          const withoutDuplicate = prev.filter((n) => n.id !== notification.id);
+          return [notification, ...withoutDuplicate].slice(0, 50);
+        });
+      } catch {
+        void fetchNotifs();
+      }
+    };
+    events.onerror = () => {
+      events.close();
+    };
+    const interval = setInterval(() => void fetchNotifs(), 120000);
     function onVisibilityChange() {
       if (document.visibilityState === "visible") void fetchNotifs();
     }
     window.addEventListener("focus", fetchNotifs);
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
+      events.close();
       clearInterval(interval);
       window.removeEventListener("focus", fetchNotifs);
       document.removeEventListener("visibilitychange", onVisibilityChange);

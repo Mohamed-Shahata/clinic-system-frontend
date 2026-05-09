@@ -16,6 +16,7 @@ type Appointment = {
 type Prescription = {
   id: string;
   issuedAt: string;
+  diagnosis?: string;
   medications: string | object;
   notes?: string;
   doctor?: { id: string; fullName: string };
@@ -25,6 +26,7 @@ type Attachment = {
   id: string;
   name: string;
   url: string;
+  mimeType?: string;
   uploadedAt: string;
 };
 
@@ -90,15 +92,28 @@ function parseMedications(raw: string | object): string[] {
   }
 }
 
+function sameDay(a: string, b: string): boolean {
+  return new Date(a).toDateString() === new Date(b).toDateString();
+}
+
 export function PatientDetailClient({ locale, patient }: Props) {
   const isAr = locale === "ar";
   const [activeTab, setActiveTab] = useState<
     "timeline" | "prescriptions" | "attachments"
   >("timeline");
+  const [attachments, setAttachments] = useState(patient.attachments ?? []);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
   const appointments = patient.appointments ?? [];
   const prescriptions = patient.prescriptions ?? [];
-  const attachments = patient.attachments ?? [];
+  const completedVisits = appointments.filter((a) => a.status === "COMPLETED");
+  const lastVisit = appointments[0];
+  const lastPrescription = prescriptions[0];
+  const recentMedications = prescriptions
+    .flatMap((p) => parseMedications(p.medications))
+    .filter(Boolean)
+    .slice(0, 6);
 
   // Build unified visit timeline
   const age = patient.dateOfBirth
@@ -123,6 +138,7 @@ export function PatientDetailClient({ locale, patient }: Props) {
               <span class="visit-doctor">${isArLang ? "د." : "Dr."} ${p.doctor?.fullName ?? "—"}</span>
             </div>
             ${meds.length ? `<ul class="med-list">${meds.map((m) => `<li>${m}</li>`).join("")}</ul>` : ""}
+            ${p.diagnosis ? `<p class="notes">${isArLang ? "التشخيص: " : "Diagnosis: "}${p.diagnosis}</p>` : ""}
             ${p.notes ? `<p class="notes">${p.notes}</p>` : ""}
           </div>`;
       })
@@ -155,6 +171,7 @@ export function PatientDetailClient({ locale, patient }: Props) {
     background: #fff; color: #1a2035; padding: 32px;
     font-size: 13px; line-height: 1.6;
   }
+
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1565C0; padding-bottom: 16px; margin-bottom: 24px; }
   .logo { display: flex; align-items: center; gap: 8px; }
   .logo-box { width: 36px; height: 36px; background: #1565C0; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
@@ -240,6 +257,36 @@ ${medsHTML}
     setTimeout(() => {
       win.print();
     }, 500);
+  }
+
+  async function uploadAttachment(file: File | null) {
+    if (!file) return;
+    setAttachmentError(null);
+    setUploadingAttachment(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(`/api/patients/${patient.id}`, {
+        method: "POST",
+        body: formData,
+      });
+      const data = (await res.json().catch(() => ({}))) as
+        | Attachment
+        | { message?: string };
+      if (!res.ok || !("id" in data)) {
+        setAttachmentError(
+          "message" in data && data.message
+            ? data.message
+            : isAr
+              ? "تعذر رفع الملف"
+              : "Could not upload file",
+        );
+        return;
+      }
+      setAttachments((prev) => [data, ...prev]);
+    } finally {
+      setUploadingAttachment(false);
+    }
   }
 
   const tabs = [
@@ -353,9 +400,14 @@ ${medsHTML}
                   color: "text-primary",
                 },
                 {
+                  label: isAr ? "مكتملة" : "Done",
+                  val: completedVisits.length,
+                  color: "text-success",
+                },
+                {
                   label: isAr ? "وصفة" : "Rx",
                   val: prescriptions.length,
-                  color: "text-success",
+                  color: "text-warning",
                 },
               ].map((s) => (
                 <div
@@ -383,6 +435,70 @@ ${medsHTML}
           )}
         </CardBody>
       </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+        <Card>
+          <CardBody>
+            <p className="text-xs font-semibold text-muted">
+              {isAr ? "آخر زيارة" : "Last Visit"}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-foreground">
+              {lastVisit
+                ? new Date(lastVisit.startsAt).toLocaleDateString(
+                    isAr ? "ar-EG" : "en-GB",
+                  )
+                : isAr
+                  ? "لا توجد زيارات"
+                  : "No visits"}
+            </p>
+            {lastVisit && (
+              <p className="mt-1 text-xs text-muted">
+                {statusLabel(lastVisit.status, isAr)}
+              </p>
+            )}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-semibold text-muted">
+              {isAr ? "آخر وصفة" : "Last Prescription"}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-foreground">
+              {lastPrescription
+                ? new Date(lastPrescription.issuedAt).toLocaleDateString(
+                    isAr ? "ar-EG" : "en-GB",
+                  )
+                : isAr
+                  ? "لا توجد وصفات"
+                  : "No prescriptions"}
+            </p>
+            {lastPrescription?.diagnosis && (
+              <p className="mt-1 text-xs text-muted line-clamp-1">
+                {lastPrescription.diagnosis}
+              </p>
+            )}
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <p className="text-xs font-semibold text-muted">
+              {isAr ? "مؤشر سريع للدكتور" : "Doctor Snapshot"}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-foreground">
+              {isAr
+                ? `${completedVisits.length} زيارة مكتملة من ${appointments.length}`
+                : `${completedVisits.length} completed of ${appointments.length} visits`}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {recentMedications.length > 0
+                ? recentMedications.slice(0, 2).join(" · ")
+                : isAr
+                  ? "لا توجد أدوية حديثة"
+                  : "No recent medications"}
+            </p>
+          </CardBody>
+        </Card>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-border">
@@ -463,6 +579,49 @@ ${medsHTML}
                           {appt.notes}
                         </p>
                       )}
+                      {prescriptions.some((p) =>
+                        sameDay(p.issuedAt, appt.startsAt),
+                      ) && (
+                        <div className="mt-3 border-t border-card-border pt-3">
+                          <p className="text-xs font-semibold text-foreground">
+                            {isAr ? "ما كتبه الدكتور في نفس اليوم" : "Same-day doctor notes"}
+                          </p>
+                          <div className="mt-2 space-y-2">
+                            {prescriptions
+                              .filter((p) => sameDay(p.issuedAt, appt.startsAt))
+                              .map((p) => {
+                                const meds = parseMedications(p.medications);
+                                return (
+                                  <div
+                                    key={p.id}
+                                    className="rounded-lg bg-surface-2/60 px-3 py-2"
+                                  >
+                                    {p.diagnosis && (
+                                      <p className="text-xs text-muted">
+                                        {isAr ? "التشخيص: " : "Diagnosis: "}
+                                        <span className="text-foreground">
+                                          {p.diagnosis}
+                                        </span>
+                                      </p>
+                                    )}
+                                    {meds.length > 0 && (
+                                      <ul className="mt-1 space-y-0.5">
+                                        {meds.slice(0, 4).map((m, i) => (
+                                          <li
+                                            key={i}
+                                            className="text-xs text-foreground"
+                                          >
+                                            {m}
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -530,6 +689,12 @@ ${medsHTML}
                         ))}
                       </ul>
                     )}
+                    {p.diagnosis && (
+                      <p className="mt-3 text-xs text-muted border-t border-card-border pt-2">
+                        {isAr ? "التشخيص: " : "Diagnosis: "}
+                        <span className="text-foreground">{p.diagnosis}</span>
+                      </p>
+                    )}
                     {p.notes && (
                       <p className="mt-3 text-xs text-muted italic border-t border-card-border pt-2">
                         {p.notes}
@@ -546,6 +711,41 @@ ${medsHTML}
       {/* Attachments Tab */}
       {activeTab === "attachments" && (
         <div className="space-y-2">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-dashed border-card-border bg-surface px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                {isAr ? "إضافة ملف للمريض" : "Add Patient File"}
+              </p>
+              <p className="text-xs text-muted mt-0.5">
+                {isAr
+                  ? "ارفع صورة أشعة أو ملف PDF داخل ملف المريض."
+                  : "Upload an X-ray image or PDF into the patient file."}
+              </p>
+              {attachmentError && (
+                <p className="mt-1 text-xs text-danger">{attachmentError}</p>
+              )}
+            </div>
+            <label className="shrink-0 inline-flex cursor-pointer items-center rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors">
+              {uploadingAttachment
+                ? isAr
+                  ? "جارٍ الرفع..."
+                  : "Uploading..."
+                : isAr
+                  ? "رفع ملف"
+                  : "Upload"}
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                className="hidden"
+                disabled={uploadingAttachment}
+                onChange={(event) => {
+                  const file = event.target.files?.[0] ?? null;
+                  void uploadAttachment(file);
+                  event.currentTarget.value = "";
+                }}
+              />
+            </label>
+          </div>
           {attachments.length === 0 ? (
             <div className="py-12 text-center text-sm text-muted">
               {isAr ? "لا توجد ملفات مرفقة" : "No attachments uploaded"}

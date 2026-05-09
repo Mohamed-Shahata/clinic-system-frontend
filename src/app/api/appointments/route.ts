@@ -7,10 +7,14 @@ async function getToken() {
   return jar.get("access_token")?.value ?? null;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const token = await getToken();
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  const res = await fetch(`${getBackendBaseUrl()}/api/appointments`, {
+  const url = new URL(`${getBackendBaseUrl()}/api/appointments`);
+  request.nextUrl.searchParams.forEach((value, key) => {
+    url.searchParams.set(key, value);
+  });
+  const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });

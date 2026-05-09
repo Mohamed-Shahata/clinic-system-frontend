@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useToast } from "@/components/ui/toast";
 import {
   Alert,
@@ -26,7 +27,12 @@ type Appointment = {
   startsAt: string;
   endsAt: string;
   status: string;
-  patient?: { fullName: string; code: string; phone?: string | null } | null;
+  patient?: {
+    id: string;
+    fullName: string;
+    code: string;
+    phone?: string | null;
+  } | null;
   doctor?: { id: string; fullName: string } | null;
   visitType?: string | null;
   notes?: string | null;
@@ -39,6 +45,7 @@ type SimilarPatient = {
 };
 
 const ALLOWED_STATUSES = ["IN_QUEUE", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
+const STATUS_FILTERS = ["ALL", ...ALLOWED_STATUSES];
 
 function generatePatientCode() {
   return "PT-" + Math.random().toString(36).slice(2, 8).toUpperCase();
@@ -80,6 +87,10 @@ function dateInputValue(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function isPastAppointmentDay(iso: string) {
+  return dateInputValue(new Date(iso)) < dateInputValue(new Date());
 }
 
 /* ─────────────────────────────────────────────
@@ -160,23 +171,32 @@ export function AppointmentsClientPage({
   const [appointments, setAppointments] = useState(initialAppointments);
   const [patients, setPatients] = useState(initialPatients);
   const [mounted, setMounted] = useState(false);
+  const todayStr = dateInputValue(new Date());
+  const [filterDate, setFilterDate] = useState(todayStr);
+  const [filterStatus, setFilterStatus] = useState("ALL");
 
   useEffect(() => setMounted(true), []);
 
   // ── live polling ──────────────────────────────────────────
   const editingRef = useRef<Appointment | null>(null);
   useEffect(() => {
-    const interval = setInterval(async () => {
+    async function loadAppointments() {
       if (editingRef.current) return;
       try {
-        const res = await fetch("/api/appointments", { cache: "no-store" });
+        const params = new URLSearchParams({ date: filterDate });
+        if (filterStatus !== "ALL") params.set("status", filterStatus);
+        const res = await fetch(`/api/appointments?${params.toString()}`, {
+          cache: "no-store",
+        });
         if (res.ok) setAppointments((await res.json()) as Appointment[]);
       } catch {
         /* silent */
       }
-    }, 15000);
+    }
+    void loadAppointments();
+    const interval = setInterval(() => void loadAppointments(), 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [filterDate, filterStatus]);
 
   // ── BOOKING MODAL STATE ───────────────────────────────────
   const [bookingOpen, setBookingOpen] = useState(false);
@@ -447,8 +467,6 @@ export function AppointmentsClientPage({
   const [savePending, setSavePending] = useState(false);
   const [actionPendingId, setActionPendingId] = useState<string | null>(null);
   const [cancelConfirmId, setCancelConfirmId] = useState<string | null>(null);
-  const todayStr = dateInputValue(new Date());
-  const [filterDate, setFilterDate] = useState(todayStr);
 
   const todayAppointments = useMemo(
     () =>
@@ -473,8 +491,9 @@ export function AppointmentsClientPage({
   const filteredAppointments = useMemo(() => {
     return appointments
       .filter((a) => ALLOWED_STATUSES.includes(a.status))
+      .filter((a) => filterStatus === "ALL" || a.status === filterStatus)
       .filter((a) => dateInputValue(new Date(a.startsAt)) === filterDate);
-  }, [appointments, filterDate]);
+  }, [appointments, filterDate, filterStatus]);
 
   const statusLabels: Record<string, string> = {
     IN_QUEUE: isAr ? "في الطابور" : "In Queue",
@@ -663,7 +682,7 @@ export function AppointmentsClientPage({
             <h2 className="text-sm font-semibold text-foreground">
               {isAr ? "الجدول" : "Schedule"}
             </h2>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <label className="text-xs text-muted">
                 {isAr ? "تصفية بالتاريخ" : "Filter by date"}
               </label>
@@ -673,6 +692,21 @@ export function AppointmentsClientPage({
                 onChange={(e) => setFilterDate(e.target.value)}
                 className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground outline-none focus:ring-2 ring-primary/30"
               />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground outline-none focus:ring-2 ring-primary/30"
+              >
+                {STATUS_FILTERS.map((status) => (
+                  <option key={status} value={status}>
+                    {status === "ALL"
+                      ? isAr
+                        ? "كل الحالات"
+                        : "All statuses"
+                      : statusLabels[status] ?? status}
+                  </option>
+                ))}
+              </select>
               {filterDate !== todayStr && (
                 <Button
                   size="sm"
@@ -700,52 +734,69 @@ export function AppointmentsClientPage({
             />
           ) : (
             <div className="divide-y divide-card-border">
-              {filteredAppointments.map((apt) => (
-                <div
-                  key={apt.id}
-                  className="px-5 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-foreground">
-                      {apt.patient?.fullName ??
-                        (isAr ? "مريض غير محدد" : "No patient")}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {mounted ? formatDateTime(apt.startsAt, locale) : ""} ·{" "}
-                      {apt.doctor?.fullName ??
-                        (isAr ? "طبيب غير محدد" : "No doctor")}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={statusVariant(apt.status)}>
-                      {statusLabels[apt.status] ?? apt.status}
-                    </Badge>
-                    {/* Edit hidden when COMPLETED, CANCELLED, or IN_PROGRESS */}
-                    {!["COMPLETED", "CANCELLED", "IN_PROGRESS"].includes(
-                      apt.status,
-                    ) && (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        loading={savePending && editing?.id === apt.id}
-                        onClick={() => openEdit(apt)}
-                      >
-                        {isAr ? "تعديل" : "Edit"}
-                      </Button>
-                    )}
-                    {!["COMPLETED", "CANCELLED"].includes(apt.status) && (
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        loading={actionPendingId === apt.id}
-                        onClick={() => setCancelConfirmId(apt.id)}
-                      >
-                        {isAr ? "إلغاء" : "Cancel"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+              {filteredAppointments.map((apt) => {
+                const locked = isPastAppointmentDay(apt.startsAt);
+                return (
+                    <div
+                      key={apt.id}
+                      className="px-5 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          {apt.patient?.fullName ??
+                            (isAr ? "مريض غير محدد" : "No patient")}
+                        </p>
+                        <p className="text-xs text-muted">
+                          {mounted ? formatDateTime(apt.startsAt, locale) : ""} ·{" "}
+                          {apt.doctor?.fullName ??
+                            (isAr ? "طبيب غير محدد" : "No doctor")}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant={statusVariant(apt.status)}>
+                          {statusLabels[apt.status] ?? apt.status}
+                        </Badge>
+                        {locked && (
+                          <Badge variant="muted">
+                            {isAr ? "مغلق" : "Locked"}
+                          </Badge>
+                        )}
+                        {apt.patient?.id && (
+                          <Link
+                            href={`/${locale}/dashboard/doctor-admin/patients/${apt.patient.id}`}
+                            className="inline-flex h-8 items-center rounded border border-border bg-surface px-3 text-xs font-medium text-foreground hover:bg-surface-2 transition-colors"
+                          >
+                            {isAr ? "ملف المريض" : "Patient file"}
+                          </Link>
+                        )}
+                        {!locked &&
+                          !["COMPLETED", "CANCELLED", "IN_PROGRESS"].includes(
+                            apt.status,
+                          ) && (
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              loading={savePending && editing?.id === apt.id}
+                              onClick={() => openEdit(apt)}
+                            >
+                              {isAr ? "تعديل" : "Edit"}
+                            </Button>
+                          )}
+                        {!locked &&
+                          !["COMPLETED", "CANCELLED"].includes(apt.status) && (
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              loading={actionPendingId === apt.id}
+                              onClick={() => setCancelConfirmId(apt.id)}
+                            >
+                              {isAr ? "إلغاء" : "Cancel"}
+                            </Button>
+                          )}
+                      </div>
+                    </div>
+                );
+              })}
             </div>
           )}
         </CardBody>

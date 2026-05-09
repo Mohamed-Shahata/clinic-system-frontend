@@ -22,3 +22,26 @@ export async function GET(
   const data = await res.json().catch(() => ({}));
   return NextResponse.json(data, { status: res.status });
 }
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ patientId: string }> },
+) {
+  const token = await getToken();
+  if (!token)
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+  const { patientId } = await params;
+  const formData = await request.formData();
+  const res = await fetch(
+    `${getBackendBaseUrl()}/api/patients/${patientId}/attachments`,
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+      cache: "no-store",
+    },
+  );
+  const data = await res.json().catch(() => ({}));
+  return NextResponse.json(data, { status: res.status });
+}

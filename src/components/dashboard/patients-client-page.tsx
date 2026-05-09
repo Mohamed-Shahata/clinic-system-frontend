@@ -202,19 +202,12 @@ export function PatientsClientPage({
                             locale === "ar" ? "ar-EG" : "en-GB",
                           )}
                         </span>
-                        <svg
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="text-muted"
+                        <Link
+                          href={`/${locale}/dashboard/doctor-admin/patients/${p.id}`}
+                          className="inline-flex h-8 items-center rounded border border-border bg-surface px-3 text-xs font-medium text-foreground hover:bg-surface-2 transition-colors"
                         >
-                          <path d="M9 18l6-6-6-6" />
-                        </svg>
+                          {isAr ? "ملف المريض" : "Patient file"}
+                        </Link>
                       </div>
                     </div>
                   );

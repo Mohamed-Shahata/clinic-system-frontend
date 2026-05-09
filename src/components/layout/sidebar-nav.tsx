@@ -246,7 +246,7 @@ export function SidebarNav({
           </div>
         )}
 
-        {/* Toggle button — arrow at end of header row, inside sidebar */}
+        {/* Toggle button — stays visible at the top of the collapsed desktop rail */}
         <button
           type="button"
           onClick={onToggle}
@@ -259,12 +259,26 @@ export function SidebarNav({
                 ? "طي القائمة"
                 : "Collapse sidebar"
           }
-          className="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-lg text-sidebar-fg hover:bg-sidebar-hover-bg hover:text-white transition-colors"
+          title={
+            collapsed
+              ? isAr
+                ? "فتح القائمة"
+                : "Expand sidebar"
+              : isAr
+                ? "طي القائمة"
+                : "Collapse sidebar"
+          }
+          className={[
+            "shrink-0 inline-flex items-center justify-center rounded-lg text-sidebar-fg hover:bg-sidebar-hover hover:text-white transition-colors",
+            collapsed
+              ? "h-11 w-11 bg-primary text-white shadow-sm ring-1 ring-primary/30"
+              : "h-8 w-8",
+          ].join(" ")}
         >
           {/* Arrow: points right when collapsed (expand), left when open (collapse). Flip for RTL */}
           <svg
-            width="16"
-            height="16"
+            width={collapsed ? "20" : "16"}
+            height={collapsed ? "20" : "16"}
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"

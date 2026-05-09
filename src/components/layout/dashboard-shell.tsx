@@ -23,7 +23,8 @@ export function DashboardShell({
 
   useEffect(() => {
     const value = window.localStorage.getItem("dashboard-sidebar-open");
-    setOpen(value !== "false");
+    const desktop = window.matchMedia("(min-width: 768px)").matches;
+    setOpen(desktop ? value !== "false" : false);
   }, []);
 
   useEffect(() => {
@@ -48,13 +49,21 @@ export function DashboardShell({
           "bg-sidebar shrink-0 flex flex-col border-e border-white/5 transition-[width,transform] duration-300 ease-out overflow-hidden",
           "md:relative md:translate-x-0",
           open
-            ? "fixed inset-y-0 start-0 z-50 w-64 shadow-2xl md:shadow-none md:z-auto"
-            : "fixed inset-y-0 start-0 z-50 -translate-x-full md:translate-x-0 md:w-14",
+            ? [
+                "fixed inset-y-0 z-50 w-64 shadow-2xl md:shadow-none md:z-auto",
+                isAr ? "right-0 md:right-auto" : "left-0 md:left-auto",
+              ].join(" ")
+            : [
+                "fixed inset-y-0 z-50 md:translate-x-0 md:w-16",
+                isAr
+                  ? "right-0 translate-x-full md:right-auto"
+                  : "left-0 -translate-x-full md:left-auto",
+              ].join(" "),
         ].join(" ")}
       >
         <div
           className="flex flex-col h-full"
-          style={{ minWidth: open ? 256 : 56 }}
+          style={{ minWidth: open ? 256 : 64 }}
         >
           <SidebarNav
             locale={locale}
@@ -76,7 +85,7 @@ export function DashboardShell({
               type="button"
               aria-label={isAr ? "فتح القائمة" : "Open menu"}
               onClick={() => setOpen((v) => !v)}
-              className="md:hidden inline-flex h-8 w-8 items-center justify-center rounded-lg text-foreground hover:bg-surface-2 transition-colors"
+              className="md:hidden inline-flex h-10 w-10 items-center justify-center rounded-lg text-foreground hover:bg-surface-2 transition-colors"
             >
               <svg
                 width="18"
