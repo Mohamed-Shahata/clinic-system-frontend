@@ -4,8 +4,9 @@ import { ToastProvider } from "@/components/ui";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Clinic Management SaaS",
-  description: "Multi-tenant clinic management platform",
+  title: { default: "كلينيك — نظام إدارة العيادة", template: "%s | كلينيك" },
+  description: "نظام متكامل لإدارة العيادات والمرضى والفواتير",
+  icons: { icon: "/icon" },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

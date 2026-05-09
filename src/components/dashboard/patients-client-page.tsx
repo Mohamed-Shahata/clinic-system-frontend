@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   Badge,
   Button,
@@ -167,7 +168,10 @@ export function PatientsClientPage({
                       key={p.id}
                       className="px-5 py-3.5 flex items-center justify-between hover:bg-surface-2 transition-colors"
                     >
-                      <div className="min-w-0">
+                      <Link
+                        href={`/${locale}/dashboard/doctor-admin/patients/${p.id}`}
+                        className="min-w-0 flex-1 hover:text-primary transition-colors"
+                      >
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-medium text-foreground">
                             {p.fullName}
@@ -191,12 +195,27 @@ export function PatientsClientPage({
                               ? "لا تاريخ ميلاد"
                               : "No DOB"}
                         </p>
+                      </Link>
+                      <div className="flex items-center gap-2 shrink-0 ms-3">
+                        <span className="text-xs text-muted">
+                          {new Date(p.createdAt).toLocaleDateString(
+                            locale === "ar" ? "ar-EG" : "en-GB",
+                          )}
+                        </span>
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="text-muted"
+                        >
+                          <path d="M9 18l6-6-6-6" />
+                        </svg>
                       </div>
-                      <span className="text-xs text-muted shrink-0 ms-3">
-                        {new Date(p.createdAt).toLocaleDateString(
-                          locale === "ar" ? "ar-EG" : "en-GB",
-                        )}
-                      </span>
                     </div>
                   );
                 })}

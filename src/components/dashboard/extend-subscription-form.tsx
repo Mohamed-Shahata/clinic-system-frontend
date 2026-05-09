@@ -2,7 +2,15 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocale } from "next-intl";
-import { Card, CardBody, CardHeader, Button, Input, Alert, Badge } from "@/components/ui";
+import {
+  Card,
+  CardBody,
+  CardHeader,
+  Button,
+  Input,
+  Alert,
+  Badge,
+} from "@/components/ui";
 
 type Clinic = {
   id: string;
@@ -54,7 +62,9 @@ export function ExtendSubscriptionForm() {
 
     const daysNum = Number(days);
     if (!daysNum || daysNum < 1 || daysNum > 3650) {
-      setError(isAr ? "أدخل عدد أيام صحيح (1 - 3650)" : "Enter valid days (1 - 3650)");
+      setError(
+        isAr ? "أدخل عدد أيام صحيح (1 - 3650)" : "Enter valid days (1 - 3650)",
+      );
       return;
     }
     if (mode === "specific" && !selectedClinicId) {
@@ -84,7 +94,10 @@ export function ExtendSubscriptionForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const data = (await res.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
       if (!res.ok) {
         setError(
           typeof data.message === "string"
@@ -199,7 +212,11 @@ export function ExtendSubscriptionForm() {
           </CardHeader>
           <CardBody className="space-y-3">
             <Input
-              placeholder={isAr ? "ابحث بالاسم أو الـ slug..." : "Search by name or slug..."}
+              placeholder={
+                isAr
+                  ? "ابحث بالاسم أو الـ slug..."
+                  : "Search by name or slug..."
+              }
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -246,7 +263,9 @@ export function ExtendSubscriptionForm() {
                             {clinic.name}
                           </p>
                         </div>
-                        <p className="font-mono text-xs text-muted ms-5">{clinic.slug}</p>
+                        <p className="font-mono text-xs text-muted ms-5">
+                          {clinic.slug}
+                        </p>
                       </div>
                       <div className="shrink-0 text-end">
                         {clinic.subscription ? (
@@ -328,12 +347,20 @@ export function ExtendSubscriptionForm() {
               required
               value={days}
               onChange={(e) => setDays(e.target.value)}
-              hint={isAr ? "الأيام ستُضاف فوق تاريخ انتهاء الاشتراك الحالي" : "Days will be added on top of the current expiry date"}
+              hint={
+                isAr
+                  ? "الأيام ستُضاف فوق تاريخ انتهاء الاشتراك الحالي"
+                  : "Days will be added on top of the current expiry date"
+              }
             />
 
             <Input
               label={isAr ? "سبب التمديد (اختياري)" : "Reason (optional)"}
-              placeholder={isAr ? "مثال: هدية رمضان، مناسبة خاصة..." : "e.g. Ramadan gift, special occasion..."}
+              placeholder={
+                isAr
+                  ? "مثال: هدية رمضان، مناسبة خاصة..."
+                  : "e.g. Ramadan gift, special occasion..."
+              }
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
@@ -347,8 +374,7 @@ export function ExtendSubscriptionForm() {
                 {isAr ? "إضافة " : "Add "}
                 <span className="font-bold text-primary">
                   {days || "—"} {isAr ? "يوم" : "days"}
-                </span>
-                {" "}
+                </span>{" "}
                 {mode === "all"
                   ? isAr
                     ? `لجميع العيادات (${clinics.length})`

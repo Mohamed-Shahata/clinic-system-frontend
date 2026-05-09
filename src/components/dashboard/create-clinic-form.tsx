@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useLocale } from "next-intl";
+import { PhoneInput } from "@/components/ui/phone-input";
 import {
   Card,
   CardBody,
@@ -227,15 +228,11 @@ export function CreateClinicForm({
                   isAr ? "يمكن تسجيل الدخول بالبريد" : "Can login with email"
                 }
               />
-              <Input
-                label={isAr ? "رقم الهاتف" : "Phone (optional)"}
-                type="tel"
-                placeholder="01000000000"
+              <PhoneInput
+                label={isAr ? "رقم الهاتف (اختياري)" : "Phone (optional)"}
                 value={adminPhone}
-                onChange={(e) => setAdminPhone(e.target.value)}
-                hint={
-                  isAr ? "يمكن تسجيل الدخول بالهاتف" : "Can login with phone"
-                }
+                onChange={setAdminPhone}
+                placeholder="1000000000"
               />
             </div>
             {adminEmail && adminPhone && (

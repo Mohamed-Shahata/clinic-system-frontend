@@ -290,22 +290,30 @@ export function BillingClientPage({
     const servicesRows = svcs
       .map(
         (s) =>
-          `<div class="row"><span>${String(s.name)}</span><strong>${Number(s.amount).toLocaleString()} EGP</strong></div>`,
+          `<div class="row"><span>${String(s.name)}</span><strong>${Number(s.amount).toLocaleString(isAr ? "ar-EG" : "en-GB")} EGP</strong></div>`,
       )
       .join("");
     const html = `<!doctype html><html lang="${locale}" dir="${isAr ? "rtl" : "ltr"}"><head><meta charset="utf-8" />
+      <link rel="preconnect" href="https://fonts.googleapis.com">
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
       <title>${isAr ? "فاتورة" : "Invoice"}</title>
-      <style>body{font-family:Arial,sans-serif;margin:0;color:#17202a}.sheet{width:80mm;margin:auto;padding:18px}.top{border-bottom:1px solid #cbd5e1;padding-bottom:10px;margin-bottom:14px}h1{font-size:20px;margin:0 0 6px}.row{display:flex;justify-content:space-between;gap:10px;margin:8px 0;font-size:13px}.total{border-top:2px solid #17202a;margin-top:14px;padding-top:12px;font-weight:700;font-size:18px}.muted{color:#64748b;font-size:12px}.divider{border-top:1px dashed #cbd5e1;margin:10px 0}</style>
-      </head><body><main class="sheet"><div class="top"><h1>${isAr ? "فاتورة عيادة" : "Clinic Invoice"}</h1><div class="muted">${new Date(invoice.createdAt).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")}</div></div>
-      <div class="row"><span>${isAr ? "كود الفاتورة" : "Invoice code"}</span><strong>${invoice.id.slice(-8).toUpperCase()}</strong></div>
-      <div class="row"><span>${isAr ? "المريض" : "Patient"}</span><strong>${invoice.patient?.fullName ?? "-"}</strong></div>
-      <div class="row"><span>${isAr ? "كود المريض" : "Patient code"}</span><strong>${invoice.patient?.code ?? "-"}</strong></div>
+      <style>body{font-family:${isAr ? "'Cairo',sans-serif" : "'Inter',sans-serif"};margin:0;color:#17202a}.sheet{width:88mm;margin:auto;padding:20px}.top{border-bottom:2px solid #1565C0;padding-bottom:12px;margin-bottom:16px}.logo{display:flex;align-items:center;gap:8px;margin-bottom:10px}.logo-box{width:28px;height:28px;background:#1565C0;border-radius:6px;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:16px}h1{font-size:17px;margin:0 0 4px;font-weight:700}.row{display:flex;justify-content:space-between;gap:10px;margin:7px 0;font-size:12px}.total{border-top:2px solid #1565C0;margin-top:16px;padding-top:12px;font-weight:700;font-size:17px;color:#1565C0}.muted{color:#64748b;font-size:11px}.divider{border-top:1px dashed #cbd5e1;margin:10px 0}.badge{background:#eff6ff;color:#1565C0;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600}</style>
+      </head><body><main class="sheet">
+      <div class="top">
+        <div class="logo"><div class="logo-box">+</div><span style="font-weight:700;color:#1565C0;font-size:13px">${isAr ? "نظام إدارة العيادة" : "Clinic CMS"}</span></div>
+        <h1>${isAr ? "فاتورة عيادة" : "Clinic Invoice"}</h1>
+        <div class="muted">${new Date(invoice.createdAt).toLocaleString(isAr ? "ar-EG" : "en-GB")}</div>
+      </div>
+      <div class="row"><span class="muted">${isAr ? "كود الفاتورة" : "Invoice #"}</span><span class="badge">${invoice.id.slice(-8).toUpperCase()}</span></div>
+      <div class="row"><span>${isAr ? "المريض" : "Patient"}</span><strong>${invoice.patient?.fullName ?? "—"}</strong></div>
+      <div class="row"><span>${isAr ? "كود المريض" : "Patient code"}</span><strong>${invoice.patient?.code ?? "—"}</strong></div>
       <div class="divider"></div>
       ${servicesRows}
       <div class="row"><span>${isAr ? "طريقة الدفع" : "Payment"}</span><strong>${paymentLabels[invoice.paymentMethod] ?? invoice.paymentMethod}</strong></div>
-      <div class="row total"><span>${isAr ? "الإجمالي" : "Total"}</span><strong>${Number(invoice.totalAmount).toLocaleString(locale === "ar" ? "ar-EG" : "en-GB")} EGP</strong></div>
-      </main><script>window.onload=()=>window.print()</script></body></html>`;
-    const popup = window.open("", "_blank", "width=420,height=700");
+      <div class="row total"><span>${isAr ? "الإجمالي" : "Total"}</span><strong>${Number(invoice.totalAmount).toLocaleString(isAr ? "ar-EG" : "en-GB")} EGP</strong></div>
+      <div class="muted" style="margin-top:20px;text-align:center">${isAr ? "شكراً لثقتكم" : "Thank you for your visit"}</div>
+      </main><script>window.onload=()=>setTimeout(()=>window.print(),400)</script></body></html>`;
+    const popup = window.open("", "_blank", "width=440,height=720");
     popup?.document.write(html);
     popup?.document.close();
   }

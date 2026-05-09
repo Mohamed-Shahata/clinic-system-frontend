@@ -1,13 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import type { SessionClaims } from "@/lib/auth/verify-token";
-import { useMemo, useState, type ReactNode } from "react";
-import { BiPhone } from "react-icons/bi";
-import { HiChevronDoubleLeft, HiChevronDoubleRight } from "react-icons/hi";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/dashboard/logout-button";
+import { BiPhone } from "react-icons/bi";
 
 interface NavItem {
   href: string;
@@ -166,10 +164,27 @@ export function SidebarNav({
   onToggle,
 }: SidebarProps) {
   const pathname = usePathname();
-  const activePath = pathname || currentPath;
+  const router = useRouter();
+  const [, startTransition] = useTransition();
+  // Optimistic active path: updates instantly on click before server responds
+  const [optimisticPath, setOptimisticPath] = useState<string | null>(null);
+  const activePath = optimisticPath ?? pathname ?? currentPath;
   const t = useTranslations("dashboard.nav");
   const isAr = locale === "ar";
   const items = getNavItems(locale, claims, t);
+
+  // Reset optimistic path once real pathname catches up
+  if (optimisticPath && pathname === optimisticPath) {
+    setOptimisticPath(null);
+  }
+
+  function handleNav(href: string) {
+    if (href === pathname) return;
+    setOptimisticPath(href);
+    startTransition(() => {
+      router.push(href);
+    });
+  }
 
   const catalogItems = useMemo(
     () =>
@@ -231,7 +246,7 @@ export function SidebarNav({
           </div>
         )}
 
-        {/* Toggle button */}
+        {/* Toggle button — arrow at end of header row, inside sidebar */}
         <button
           type="button"
           onClick={onToggle}
@@ -244,13 +259,31 @@ export function SidebarNav({
                 ? "طي القائمة"
                 : "Collapse sidebar"
           }
-          className="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded text-sidebar-fg hover:bg-sidebar-hover hover:text-white transition-colors"
+          className="shrink-0 inline-flex h-7 w-7 items-center justify-center rounded-lg text-sidebar-fg hover:bg-sidebar-hover-bg hover:text-white transition-colors"
         >
-          {collapsed ? (
-            <HiChevronDoubleRight size={16} />
-          ) : (
-            <HiChevronDoubleLeft size={16} />
-          )}
+          {/* Arrow: points right when collapsed (expand), left when open (collapse). Flip for RTL */}
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            style={{
+              transform: isAr
+                ? collapsed
+                  ? "rotate(180deg)"
+                  : "rotate(0deg)"
+                : collapsed
+                  ? "rotate(0deg)"
+                  : "rotate(180deg)",
+              transition: "transform 0.25s ease",
+            }}
+          >
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
         </button>
       </div>
 
@@ -283,12 +316,13 @@ export function SidebarNav({
               activePath.startsWith(item.href + "/");
 
           return (
-            <Link
+            <button
               key={item.href}
-              href={item.href}
+              type="button"
+              onClick={() => handleNav(item.href)}
               title={collapsed ? item.label : undefined}
               className={[
-                "flex items-center gap-3 rounded text-sm transition-colors",
+                "flex w-full items-center gap-3 rounded text-sm transition-colors",
                 collapsed ? "justify-center px-0 py-2.5" : "px-3 py-2",
                 isActive
                   ? "bg-sidebar-active text-sidebar-active-fg font-medium"
@@ -297,7 +331,7 @@ export function SidebarNav({
             >
               <span className="shrink-0 opacity-80">{item.icon}</span>
               {!collapsed && item.label}
-            </Link>
+            </button>
           );
         })}
 
@@ -311,19 +345,20 @@ export function SidebarNav({
                   activePath === item.href ||
                   activePath.startsWith(item.href + "/");
                 return (
-                  <Link
+                  <button
                     key={item.href}
-                    href={item.href}
+                    type="button"
+                    onClick={() => handleNav(item.href)}
                     title={item.label}
                     className={[
-                      "flex items-center justify-center rounded py-2.5 text-sm transition-colors mb-0.5",
+                      "flex w-full items-center justify-center rounded py-2.5 text-sm transition-colors mb-0.5",
                       isActive
                         ? "bg-sidebar-active text-sidebar-active-fg"
                         : "text-sidebar-fg hover:bg-sidebar-hover hover:text-white",
                     ].join(" ")}
                   >
                     <span className="opacity-80">{item.icon}</span>
-                  </Link>
+                  </button>
                 );
               })
             ) : (
@@ -348,11 +383,12 @@ export function SidebarNav({
                         activePath === item.href ||
                         activePath.startsWith(item.href + "/");
                       return (
-                        <Link
+                        <button
                           key={item.href}
-                          href={item.href}
+                          type="button"
+                          onClick={() => handleNav(item.href)}
                           className={[
-                            "flex items-center gap-3 rounded px-3 py-2 text-sm transition-colors",
+                            "flex w-full items-center gap-3 rounded px-3 py-2 text-sm transition-colors",
                             isActive
                               ? "bg-sidebar-active text-sidebar-active-fg font-medium"
                               : "text-sidebar-fg hover:bg-sidebar-hover hover:text-white",
@@ -362,7 +398,7 @@ export function SidebarNav({
                             {item.icon}
                           </span>
                           {item.label}
-                        </Link>
+                        </button>
                       );
                     })}
                   </div>

@@ -131,3 +131,49 @@ function ToastItem({ toast, onRemove }: ToastItemProps) {
     </div>
   );
 }
+
+// ── Inline Toast — use when you don't need a provider ──
+export function Toast({
+  message,
+  type = "info",
+  onClose,
+}: {
+  message: string;
+  type?: ToastType;
+  onClose?: () => void;
+}) {
+  const styles: Record<ToastType, string> = {
+    success: "bg-success/10 border-success/30 text-success",
+    error: "bg-danger/10 border-danger/30 text-danger",
+    warning: "bg-warning/10 border-warning/30 text-warning",
+    info: "bg-primary/10 border-primary/30 text-primary",
+  };
+
+  return (
+    <div
+      className={`fixed top-4 inset-x-4 sm:inset-x-auto sm:end-4 sm:w-96 z-[999] flex items-start gap-3 rounded-xl border px-4 py-3 shadow-lg animate-in slide-in-from-top-2 duration-200 ${styles[type]}`}
+      role="alert"
+    >
+      <p className="flex-1 text-sm font-medium leading-snug">{message}</p>
+      {onClose && (
+        <button
+          type="button"
+          onClick={onClose}
+          className="shrink-0 opacity-60 hover:opacity-100 transition-opacity"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+}
