@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useLocale } from "next-intl";
 import { Card, CardBody, CardHeader, Input } from "@/components/ui";
 import { PatientHistoryModal } from "@/components/dashboard/patient-history-modal";
 
@@ -15,6 +17,7 @@ type Patient = {
 };
 
 export function PatientSearchList({ initialPatients }: { initialPatients: Patient[] }) {
+  const locale = useLocale();
   const [q, setQ] = useState("");
   const [patients, setPatients] = useState(initialPatients);
 
@@ -47,7 +50,10 @@ export function PatientSearchList({ initialPatients }: { initialPatients: Patien
         <div className="divide-y divide-card-border">
           {patients.map((p) => (
             <div key={p.id} className="flex items-start justify-between gap-3 px-5 py-4 hover:bg-surface-2">
-              <div className="min-w-0">
+              <Link
+                href={`/${locale}/dashboard/doctor-admin/patients/${p.id}`}
+                className="min-w-0 flex-1 hover:text-primary transition-colors"
+              >
                 <div className="flex items-center gap-2">
                   <p className="text-sm font-medium text-foreground">{p.fullName}</p>
                   <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-xs text-muted">{p.code}</span>
@@ -56,7 +62,7 @@ export function PatientSearchList({ initialPatients }: { initialPatients: Patien
                   {p.phone ?? "No phone"} · DOB: {p.dateOfBirth ? new Date(p.dateOfBirth).toLocaleDateString() : "-"}
                 </p>
                 {p.medicalNotes && <p className="mt-1 line-clamp-2 text-xs text-foreground/70">{p.medicalNotes}</p>}
-              </div>
+              </Link>
               <PatientHistoryModal patient={p} />
             </div>
           ))}
