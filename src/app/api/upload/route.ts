@@ -34,11 +34,13 @@ export async function GET(request: NextRequest) {
   if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
   const url = request.nextUrl.searchParams.get('url');
-  if (!url || url.startsWith('http')) {
+  // FRONT-06: Original condition was `!url || url.startsWith('http')` — this blocked
+  // every valid absolute URL and allowed null through. Fixed: reject missing/non-http URLs.
+  if (!url || !url.startsWith('http')) {
     return NextResponse.json({ message: 'Invalid file URL' }, { status: 400 });
   }
 
-  const upstream = await fetch(`${getBackendBaseUrl()}${url}`, {
+  const upstream = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
     cache: 'no-store',
   }).catch(() => null);

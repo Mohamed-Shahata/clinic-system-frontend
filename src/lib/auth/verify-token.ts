@@ -1,13 +1,15 @@
 import { JWTPayload, jwtVerify } from "jose";
 
 export type SessionClaims = JWTPayload & {
-  userId?: string;
+  // FRONT-02: JWT_PAYLOAD uses `sub` (standard JWT claim) not `userId`.
+  // The original type had `userId` which was always undefined; fixed to `sub`.
+  sub: string;           // ← this is the userId (set by NestJS JwtService)
   email?: string;
   isSuperAdmin?: boolean;
   clinicId?: string;
   clinicSlug?: string;
   clinicName?: string;
-  role?: "DOCTOR_ADMIN" | "RECEPTIONIST"; // ✅ حذف الـ duplicate
+  role?: "DOCTOR_ADMIN" | "RECEPTIONIST";
 };
 
 export async function verifyAccessToken(token: string): Promise<SessionClaims> {

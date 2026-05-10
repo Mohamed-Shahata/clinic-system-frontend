@@ -89,7 +89,10 @@ function CatalogSelect({
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        // FRONT-07: The 150ms setTimeout is a race condition on slow devices — if the user
+        // clicks an option and the device is slow, the dropdown closes before onClick fires.
+        // Fix: use onMouseDown on list items (fires before onBlur) to select before close.
+        onBlur={() => setOpen(false)}
         className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none ring-primary/30 transition-shadow focus:ring-2"
       />
       {open && filtered.length > 0 && (
@@ -276,10 +279,12 @@ export function WorkspaceClientPage({
     }
   }, [activeItem]);
 
-  // Auto-refresh every 30s
+  // Auto-refresh every 30s — FRONT-03: pause when tab is not visible to save bandwidth
   useEffect(() => {
     const id = setInterval(() => {
-      void refreshQueue();
+      if (document.visibilityState === "visible") {
+        void refreshQueue();
+      }
     }, 30_000);
     return () => clearInterval(id);
   }, [refreshQueue]);
