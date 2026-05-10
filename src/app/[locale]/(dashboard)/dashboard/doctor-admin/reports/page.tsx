@@ -2,6 +2,7 @@ import { getSessionFromCookies } from "@/lib/auth/get-session-from-cookies";
 import { ReportsPdfButton } from "@/components/dashboard/reports-pdf-button";
 import { getBackendBaseUrl } from "@/lib/backend-url";
 import { Card, CardBody, CardHeader, StatCard } from "@/components/ui";
+import { formatNumber, formatPercent, paymentMethodLabel } from "@/lib/dashboard-format";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
@@ -52,7 +53,9 @@ export default async function ReportsPage({
     0,
   );
   const completed = appointments.filter((a) => a.status === "COMPLETED").length;
-  const pending = appointments.filter((a) => a.status === "PENDING").length;
+  const pending = appointments.filter((a) =>
+    ["BOOKED", "IN_QUEUE", "PENDING"].includes(a.status),
+  ).length;
 
   // Monthly revenue breakdown
   const monthlyMap = invoices.reduce<Record<string, number>>((acc, inv) => {
@@ -75,12 +78,11 @@ export default async function ReportsPage({
     {},
   );
 
-  const paymentLabels: Record<string, string> = {
-    cash: isAr ? "نقدي" : "Cash",
-    card: isAr ? "بطاقة" : "Card",
-    insurance: isAr ? "تأمين" : "Insurance",
-    unknown: isAr ? "غير محدد" : "Unknown",
-  };
+  const allowedPaymentBreakdown = Object.fromEntries(
+    Object.entries(paymentBreakdown).filter(([method]) =>
+      ["cash", "vodafone_cash"].includes(method),
+    ),
+  );
 
   return (
     <div className="space-y-6">
@@ -112,24 +114,24 @@ export default async function ReportsPage({
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label={isAr ? "إجمالي الإيراد" : "Total Revenue"}
-          value={`${revenue.toLocaleString()} EGP`}
+          value={`${formatNumber(revenue, locale)} EGP`}
           icon={<span />}
         />
         <StatCard
           label={isAr ? "عدد الفواتير" : "Invoices"}
-          value={invoices.length}
+          value={formatNumber(invoices.length, locale)}
           color="success"
           icon={<span />}
         />
         <StatCard
           label={isAr ? "زيارات مكتملة" : "Completed Visits"}
-          value={completed}
+          value={formatNumber(completed, locale)}
           color="warning"
           icon={<span />}
         />
         <StatCard
           label={isAr ? "حجوزات قيد الانتظار" : "Pending Appointments"}
-          value={pending}
+          value={formatNumber(pending, locale)}
           color="primary"
           icon={<span />}
         />
@@ -157,7 +159,7 @@ export default async function ReportsPage({
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-foreground">{month}</span>
                       <span className="font-medium text-foreground">
-                        {amount.toLocaleString()} EGP
+                        {formatNumber(amount, locale)} EGP
                       </span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-surface-2">
@@ -181,17 +183,17 @@ export default async function ReportsPage({
             </h2>
           </CardHeader>
           <CardBody className="space-y-2">
-            {Object.entries(paymentBreakdown).length === 0 ? (
+            {Object.entries(allowedPaymentBreakdown).length === 0 ? (
               <p className="text-sm text-muted">
                 {isAr ? "لا توجد بيانات" : "No data available"}
               </p>
             ) : (
               (() => {
-                const total = Object.values(paymentBreakdown).reduce(
+                const total = Object.values(allowedPaymentBreakdown).reduce(
                   (s, v) => s + v,
                   0,
                 );
-                return Object.entries(paymentBreakdown).map(
+                return Object.entries(allowedPaymentBreakdown).map(
                   ([method, amount]) => {
                     const pct =
                       total > 0 ? Math.round((amount / total) * 100) : 0;
@@ -199,11 +201,11 @@ export default async function ReportsPage({
                       <div key={method} className="space-y-1">
                         <div className="flex items-center justify-between text-sm">
                           <span className="text-foreground">
-                            {paymentLabels[method] ?? method}
+                            {paymentMethodLabel(method, locale)}
                           </span>
                           <span className="font-medium text-foreground">
-                            {amount.toLocaleString()} EGP{" "}
-                            <span className="text-muted text-xs">({pct}%)</span>
+                            {formatNumber(amount, locale)} EGP{" "}
+                            <span className="text-muted text-xs">({formatPercent(pct, locale)})</span>
                           </span>
                         </div>
                         <div className="h-1.5 w-full rounded-full bg-surface-2">

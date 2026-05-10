@@ -33,8 +33,11 @@ export async function POST(
 
   const { patientId } = await params;
   const formData = await request.formData();
+  const appointmentId = new URL(request.url).searchParams.get("appointmentId");
+  const url = new URL(`${getBackendBaseUrl()}/api/patients/${patientId}/attachments`);
+  if (appointmentId) url.searchParams.set("appointmentId", appointmentId);
   const res = await fetch(
-    `${getBackendBaseUrl()}/api/patients/${patientId}/attachments`,
+    url,
     {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },

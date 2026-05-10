@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { Card, CardBody, CardHeader } from "@/components/ui";
+import { formatNumber, formatPercent } from "@/lib/dashboard-format";
 
 type MonthlyStats = {
   month: string;
@@ -28,8 +29,8 @@ type MonthlyStats = {
   dailyChart: Array<{ day: number; gross: number; net: number }>;
 };
 
-function fmt(n: number) {
-  return n.toLocaleString("en-EG") + " EGP";
+function fmt(n: number, locale: string) {
+  return formatNumber(n, locale) + " EGP";
 }
 
 function MonthLabel(month: string, isAr: boolean) {
@@ -61,7 +62,7 @@ function MiniBarChart({
           <div
             key={d.day}
             className="relative flex-1 flex flex-col items-center justify-end group"
-            title={`${isAr ? "يوم" : "Day"} ${d.day}: ${fmt(d.gross)}`}
+            title={`${isAr ? "يوم" : "Day"} ${d.day}: ${fmt(d.gross, isAr ? "ar" : "en")}`}
           >
             {/* gross bar (background) */}
             <div
@@ -162,7 +163,7 @@ function StatPill({
 }
 
 /* ── Change badge ── */
-function ChangeBadge({ pct }: { pct: number | null }) {
+function ChangeBadge({ pct, locale }: { pct: number | null; locale: string }) {
   if (pct === null) return null;
   const up = pct >= 0;
   return (
@@ -171,7 +172,7 @@ function ChangeBadge({ pct }: { pct: number | null }) {
         up ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
       }`}
     >
-      {up ? "▲" : "▼"} {Math.abs(pct)}%
+      {up ? "▲" : "▼"} {formatPercent(Math.abs(pct), locale)}
     </span>
   );
 }
@@ -194,16 +195,13 @@ export function DoctorOverviewClient({
 
   const policyLabel = useMemo(() => {
     if (!stats) return null;
-    if (stats.paymentMode === "FIXED_RENT")
-      return isAr
-        ? `إيجار ثابت: ${fmt(stats.adminFixed)}`
-        : `Fixed rent: ${fmt(stats.adminFixed)}`;
+    if (stats.paymentMode === "FIXED_RENT") return null;
     if (stats.paymentMode === "PERCENTAGE")
       return isAr
-        ? `خصم نسبة: ${stats.adminPct}%`
-        : `Percentage deduction: ${stats.adminPct}%`;
+        ? `خصم نسبة: ${formatPercent(stats.adminPct, locale)}`
+        : `Percentage deduction: ${formatPercent(stats.adminPct, locale)}`;
     return null;
-  }, [stats, isAr]);
+  }, [stats, isAr, locale]);
 
   if (!stats) {
     return (
@@ -236,17 +234,17 @@ export function DoctorOverviewClient({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatPill
           label={isAr ? "إجمالي الشهر" : "Month gross"}
-          value={fmt(stats.monthlyGross)}
+          value={fmt(stats.monthlyGross, locale)}
           color="primary"
         />
         <StatPill
           label={isAr ? "صافي دخلك" : "Your net"}
-          value={fmt(stats.monthlyNet)}
+          value={fmt(stats.monthlyNet, locale)}
           color="success"
         />
         <StatPill
           label={isAr ? "خصم العيادة" : "Clinic cut"}
-          value={fmt(stats.monthlyDeduction)}
+          value={fmt(stats.monthlyDeduction, locale)}
           color="danger"
         />
         <StatPill
@@ -326,7 +324,7 @@ export function DoctorOverviewClient({
             <h2 className="text-sm font-semibold">
               {isAr ? "مقارنة بالشهر الماضي" : "vs. last month"}
             </h2>
-            <ChangeBadge pct={stats.netChangePercent} />
+            <ChangeBadge pct={stats.netChangePercent} locale={locale} />
           </div>
         </CardHeader>
         <CardBody>
@@ -336,7 +334,7 @@ export function DoctorOverviewClient({
                 {isAr ? "الشهر الماضي (صافي)" : "Last month (net)"}
               </p>
               <p className="text-lg font-semibold text-foreground">
-                {fmt(stats.prevMonthNet)}
+                {fmt(stats.prevMonthNet, locale)}
               </p>
             </div>
             <div className="text-muted text-lg">→</div>
@@ -345,7 +343,7 @@ export function DoctorOverviewClient({
                 {isAr ? "هذا الشهر (صافي)" : "This month (net)"}
               </p>
               <p className="text-lg font-semibold text-primary">
-                {fmt(stats.monthlyNet)}
+                {fmt(stats.monthlyNet, locale)}
               </p>
             </div>
           </div>
@@ -396,13 +394,13 @@ export function DoctorOverviewClient({
                         </p>
                       </td>
                       <td className="px-4 py-2.5 text-end text-foreground">
-                        {fmt(inv.gross)}
+                        {fmt(inv.gross, locale)}
                       </td>
                       <td className="px-4 py-2.5 text-end text-danger">
-                        {inv.deducted > 0 ? `− ${fmt(inv.deducted)}` : "—"}
+                        {inv.deducted > 0 ? `− ${fmt(inv.deducted, locale)}` : "—"}
                       </td>
                       <td className="px-4 py-2.5 text-end text-success font-semibold">
-                        {fmt(inv.net)}
+                        {fmt(inv.net, locale)}
                       </td>
                     </tr>
                   ))}

@@ -347,7 +347,7 @@ export function DoctorAdminAnalytics({
                   : "bg-surface border border-border text-muted hover:text-foreground hover:bg-surface-2"
               }`}
             >
-              {y}
+              {y.toLocaleString(isAr ? "ar-EG" : "en-GB", { useGrouping: false })}
             </button>
           ))}
         </div>

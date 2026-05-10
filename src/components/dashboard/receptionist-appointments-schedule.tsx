@@ -95,7 +95,7 @@ export function ReceptionistAppointmentsSchedule({
   }, []);
 
   const statusLabels: Record<string, string> = {
-    IN_QUEUE: isAr ? "في الطابور" : "In Queue",
+    IN_QUEUE: isAr ? "قيد الانتظار" : "Waiting",
     IN_PROGRESS: isAr ? "قيد التنفيذ" : "In Progress",
     COMPLETED: isAr ? "مكتمل" : "Completed",
     CANCELLED: isAr ? "ملغي" : "Cancelled",
@@ -164,7 +164,7 @@ export function ReceptionistAppointmentsSchedule({
       );
       const messages: Record<string, string> = {
         CANCELLED: isAr ? "تم إلغاء الموعد" : "Appointment cancelled",
-        IN_QUEUE: isAr ? "تم إرسال المريض للطابور" : "Patient sent to queue",
+        IN_QUEUE: isAr ? "تم إرسال المريض للطبيب" : "Patient sent to doctor",
         IN_PROGRESS: isAr ? "تم بدء الموعد" : "Appointment started",
         COMPLETED: isAr ? "تم إكمال الموعد" : "Appointment completed",
       };

@@ -246,14 +246,7 @@ export function AppointmentBookingForm({
               )}
             </select>
           </div>
-          {doctors.length === 1 ? (
-            <div className="rounded border border-border bg-surface-2 px-3 py-2">
-              <p className="text-xs text-muted">{isAr ? "الطبيب" : "Doctor"}</p>
-              <p className="text-sm font-medium text-foreground">
-                {doctors[0].fullName}
-              </p>
-            </div>
-          ) : (
+          {doctors.length > 1 ? (
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-foreground">
                 {isAr ? "الطبيب" : "Doctor"}
@@ -271,7 +264,7 @@ export function AppointmentBookingForm({
                 ))}
               </select>
             </div>
-          )}
+          ) : null}
           <Input
             label={isAr ? "الوقت" : "Time"}
             type="time"

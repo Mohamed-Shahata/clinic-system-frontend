@@ -44,7 +44,7 @@ export function PatientsClientPage({
     COMPLETED: isAr ? "مكتمل" : "Completed",
     CANCELLED: isAr ? "ملغي" : "Cancelled",
     CHECKED_IN: isAr ? "تم الوصول" : "Checked in",
-    IN_QUEUE: isAr ? "في الطابور" : "In queue",
+    IN_QUEUE: isAr ? "قيد الانتظار" : "Waiting",
     NO_SHOW: isAr ? "لم يحضر" : "No show",
   };
 

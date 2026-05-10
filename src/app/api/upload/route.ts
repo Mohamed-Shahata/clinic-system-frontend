@@ -28,3 +28,28 @@ export async function POST(request: NextRequest) {
   const data = await res.json().catch(() => ({}));
   return NextResponse.json(data, { status: res.status });
 }
+
+export async function GET(request: NextRequest) {
+  const token = await getToken();
+  if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+
+  const url = request.nextUrl.searchParams.get('url');
+  if (!url || url.startsWith('http')) {
+    return NextResponse.json({ message: 'Invalid file URL' }, { status: 400 });
+  }
+
+  const upstream = await fetch(`${getBackendBaseUrl()}${url}`, {
+    headers: { Authorization: `Bearer ${token}` },
+    cache: 'no-store',
+  }).catch(() => null);
+
+  if (!upstream) return NextResponse.json({ message: 'Cannot reach API server' }, { status: 502 });
+
+  return new NextResponse(upstream.body, {
+    status: upstream.status,
+    headers: {
+      'content-type': upstream.headers.get('content-type') ?? 'application/octet-stream',
+      'content-disposition': upstream.headers.get('content-disposition') ?? 'inline',
+    },
+  });
+}

@@ -66,7 +66,11 @@ export default async function DoctorAdminPage({ params }: { params: Promise<{ lo
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-foreground">{session.clinicName ?? "Clinic"} Dashboard</h1>
+        <h1 className="text-xl font-semibold text-foreground">
+          {locale === "ar"
+            ? `لوحة تحكم ${session.clinicName ?? "العيادة"}`
+            : `${session.clinicName ?? "Clinic"} Dashboard`}
+        </h1>
         <p className="text-sm text-muted mt-0.5">
           {isAr ? "إدارة مرضى وموظفي العيادة" : "Manage your clinic's staff and patients"}
         </p>

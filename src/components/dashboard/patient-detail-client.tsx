@@ -3,12 +3,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Badge, Card, CardBody, CardHeader } from "@/components/ui";
+import {
+  appointmentStatusLabel,
+  formatNumber,
+  numberLocale,
+} from "@/lib/dashboard-format";
 
 type Appointment = {
   id: string;
   startsAt: string;
   endsAt?: string;
   status: string;
+  visitType?: string | null;
   notes?: string;
   doctor?: { id: string; fullName: string };
 };
@@ -16,6 +22,7 @@ type Appointment = {
 type Prescription = {
   id: string;
   issuedAt: string;
+  appointmentId?: string | null;
   diagnosis?: string;
   medications: string | object;
   notes?: string;
@@ -24,6 +31,7 @@ type Prescription = {
 
 type Attachment = {
   id: string;
+  appointmentId?: string | null;
   name: string;
   url: string;
   mimeType?: string;
@@ -49,14 +57,7 @@ interface Props {
 }
 
 function statusLabel(status: string, isAr: boolean) {
-  const map: Record<string, [string, string]> = {
-    COMPLETED: ["مكتمل", "Completed"],
-    CANCELLED: ["ملغي", "Cancelled"],
-    SCHEDULED: ["مجدول", "Scheduled"],
-    NO_SHOW: ["لم يحضر", "No Show"],
-    IN_PROGRESS: ["جارٍ", "In Progress"],
-  };
-  return (map[status] ?? [status, status])[isAr ? 0 : 1];
+  return appointmentStatusLabel(status, isAr ? "ar" : "en");
 }
 
 function statusVariant(status: string) {
@@ -65,9 +66,24 @@ function statusVariant(status: string) {
     CANCELLED: "danger",
     NO_SHOW: "warning",
     SCHEDULED: "muted",
+    BOOKED: "warning",
+    IN_QUEUE: "warning",
     IN_PROGRESS: "success",
   };
   return map[status] ?? "muted";
+}
+
+function formatMedicationValue(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string" || typeof value === "number") return String(value);
+  if (Array.isArray(value)) return value.map(formatMedicationValue).filter(Boolean).join("، ");
+  if (typeof value === "object") {
+    return Object.values(value)
+      .map(formatMedicationValue)
+      .filter(Boolean)
+      .join(" — ");
+  }
+  return String(value);
 }
 
 function parseMedications(raw: string | object): string[] {
@@ -78,18 +94,151 @@ function parseMedications(raw: string | object): string[] {
       return parsed.map((m) =>
         typeof m === "string"
           ? m
-          : [m.name, m.dose, m.frequency, m.duration]
+          : [m.name, m.dose, m.frequency, m.duration, m.instructions, m.notes]
               .filter(Boolean)
+              .map(formatMedicationValue)
               .join(" — "),
-      );
+      ).filter(Boolean);
     }
     if (typeof parsed === "object") {
-      return Object.entries(parsed).map(([k, v]) => `${k}: ${v}`);
+      return Object.entries(parsed)
+        .map(([k, v]) => `${k}: ${formatMedicationValue(v)}`)
+        .filter(Boolean);
     }
     return [String(parsed)];
   } catch {
     return [String(raw)];
   }
+}
+
+function parsePrescriptionPayload(raw: string | object) {
+  try {
+    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      const obj = parsed as {
+        medications?: unknown;
+        notes?: unknown;
+        requestedTests?: unknown;
+        requestedImaging?: unknown;
+      };
+      return {
+        medications: parseMedications(obj.medications as string | object),
+        notes: typeof obj.notes === "string" ? obj.notes : "",
+        tests: Array.isArray(obj.requestedTests)
+          ? obj.requestedTests.map(formatMedicationValue).filter(Boolean)
+          : [],
+        imaging: Array.isArray(obj.requestedImaging)
+          ? obj.requestedImaging.map(formatMedicationValue).filter(Boolean)
+          : [],
+      };
+    }
+  } catch {
+    // Fall back to treating the whole value as medication text.
+  }
+  return {
+    medications: parseMedications(raw),
+    notes: "",
+    tests: [] as string[],
+    imaging: [] as string[],
+  };
+}
+
+function fileUrl(file: Attachment) {
+  return file.url.startsWith("http")
+    ? file.url
+    : `/api/upload?url=${encodeURIComponent(file.url)}`;
+}
+
+function isImage(file: Attachment) {
+  return file.mimeType?.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+}
+
+function isPdf(file: Attachment) {
+  return file.mimeType === "application/pdf" || /\.pdf$/i.test(file.name);
+}
+
+function InfoBlock({
+  title,
+  value,
+  compact = false,
+}: {
+  title: string;
+  value: string;
+  compact?: boolean;
+}) {
+  return (
+    <div className={compact ? "" : "mt-3 border-t border-card-border pt-3"}>
+      <p className="text-xs font-semibold text-muted">{title}</p>
+      <p className="mt-1 whitespace-pre-wrap break-words text-sm leading-6 text-foreground">
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function ListBlock({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold text-muted">{title}</p>
+      <div className="mt-1 flex flex-wrap gap-1.5">
+        {items.map((item, index) => (
+          <span
+            key={`${item}-${index}`}
+            className="rounded-md border border-card-border bg-card px-2 py-1 text-xs leading-5 text-foreground"
+          >
+            {item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FileGrid({
+  files,
+  isAr,
+  onPreview,
+}: {
+  files: Attachment[];
+  isAr: boolean;
+  onPreview: (file: Attachment) => void;
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+      {files.map((file) => (
+        <button
+          key={file.id}
+          type="button"
+          onClick={() => onPreview(file)}
+          className="overflow-hidden rounded-lg border border-card-border bg-card text-start transition-colors hover:bg-surface-2"
+        >
+          <div className="flex aspect-[4/3] items-center justify-center bg-surface-2">
+            {isImage(file) ? (
+              <img
+                src={fileUrl(file)}
+                alt={file.name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-xs font-semibold text-muted">
+                {isPdf(file) ? "PDF" : isAr ? "ملف" : "File"}
+              </span>
+            )}
+          </div>
+          <div className="p-2">
+            <p className="truncate text-xs font-medium text-foreground">
+              {file.name}
+            </p>
+            <p className="mt-0.5 text-[11px] text-muted">
+              {new Date(file.uploadedAt).toLocaleDateString(
+                isAr ? "ar-EG" : "en-GB",
+              )}
+            </p>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 function sameDay(a: string, b: string): boolean {
@@ -102,6 +251,7 @@ export function PatientDetailClient({ locale, patient }: Props) {
     "timeline" | "prescriptions" | "attachments"
   >("timeline");
   const [attachments, setAttachments] = useState(patient.attachments ?? []);
+  const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
@@ -111,7 +261,7 @@ export function PatientDetailClient({ locale, patient }: Props) {
   const lastVisit = appointments[0];
   const lastPrescription = prescriptions[0];
   const recentMedications = prescriptions
-    .flatMap((p) => parseMedications(p.medications))
+    .flatMap((p) => parsePrescriptionPayload(p.medications).medications)
     .filter(Boolean)
     .slice(0, 6);
 
@@ -123,6 +273,28 @@ export function PatientDetailClient({ locale, patient }: Props) {
       )
     : null;
 
+  function visitTypeLabel(type?: string | null) {
+    const labels: Record<string, [string, string]> = {
+      NEW_VISIT: ["زيارة جديدة", "New visit"],
+      FOLLOW_UP: ["متابعة", "Follow up"],
+      CONSULTATION: ["استشارة", "Consultation"],
+      WALK_IN: ["زيارة مباشرة", "Walk-in"],
+    };
+    return (labels[type ?? ""] ?? [isAr ? "زيارة" : "Visit", "Visit"])[isAr ? 0 : 1];
+  }
+
+  function prescriptionsForVisit(appt: Appointment) {
+    return prescriptions.filter(
+      (p) => p.appointmentId === appt.id || sameDay(p.issuedAt, appt.startsAt),
+    );
+  }
+
+  function attachmentsForVisit(appt: Appointment) {
+    return attachments.filter(
+      (a) => a.appointmentId === appt.id || sameDay(a.uploadedAt, appt.startsAt),
+    );
+  }
+
   function exportPDF() {
     const isArLang = locale === "ar";
     const dir = isArLang ? "rtl" : "ltr";
@@ -130,16 +302,17 @@ export function PatientDetailClient({ locale, patient }: Props) {
 
     const medsHTML = prescriptions
       .map((p) => {
-        const meds = parseMedications(p.medications);
+        const payload = parsePrescriptionPayload(p.medications);
+        const meds = payload.medications;
         return `
           <div class="visit-card">
             <div class="visit-header">
-              <span class="visit-date">${new Date(p.issuedAt).toLocaleDateString(isArLang ? "ar-EG" : "en-GB")}</span>
+              <span class="visit-date">${new Date(p.issuedAt).toLocaleDateString(numberLocale(locale))}</span>
               <span class="visit-doctor">${isArLang ? "د." : "Dr."} ${p.doctor?.fullName ?? "—"}</span>
             </div>
             ${meds.length ? `<ul class="med-list">${meds.map((m) => `<li>${m}</li>`).join("")}</ul>` : ""}
             ${p.diagnosis ? `<p class="notes">${isArLang ? "التشخيص: " : "Diagnosis: "}${p.diagnosis}</p>` : ""}
-            ${p.notes ? `<p class="notes">${p.notes}</p>` : ""}
+            ${payload.notes || p.notes ? `<p class="notes">${payload.notes || p.notes}</p>` : ""}
           </div>`;
       })
       .join("");
@@ -149,7 +322,7 @@ export function PatientDetailClient({ locale, patient }: Props) {
         (a) => `
           <div class="visit-card ${a.status === "COMPLETED" ? "completed" : ""}">
             <div class="visit-header">
-              <span class="visit-date">${new Date(a.startsAt).toLocaleDateString(isArLang ? "ar-EG" : "en-GB")}</span>
+              <span class="visit-date">${new Date(a.startsAt).toLocaleDateString(numberLocale(locale))}</span>
               <span class="visit-status">${statusLabel(a.status, isArLang)}</span>
               <span class="visit-doctor">${isArLang ? "د." : "Dr."} ${a.doctor?.fullName ?? "—"}</span>
             </div>
@@ -203,7 +376,7 @@ export function PatientDetailClient({ locale, patient }: Props) {
   </div>
   <div style="text-align:${isArLang ? "left" : "right"}">
     <div style="font-size:11px;color:#666">${isArLang ? "تاريخ الطباعة" : "Print Date"}</div>
-    <div style="font-size:12px;font-weight:600">${new Date().toLocaleDateString(isArLang ? "ar-EG" : "en-GB")}</div>
+    <div style="font-size:12px;font-weight:600">${new Date().toLocaleDateString(numberLocale(locale))}</div>
   </div>
 </div>
 
@@ -214,14 +387,14 @@ export function PatientDetailClient({ locale, patient }: Props) {
   </div>
   ${patient.code ? `<div class="info-item"><div class="info-label">${isArLang ? "الكود" : "Code"}</div><div class="info-value">${patient.code}</div></div>` : ""}
   ${patient.phone ? `<div class="info-item"><div class="info-label">${isArLang ? "الهاتف" : "Phone"}</div><div class="info-value" dir="ltr">${patient.phone}</div></div>` : ""}
-  ${age !== null ? `<div class="info-item"><div class="info-label">${isArLang ? "العمر" : "Age"}</div><div class="info-value">${age} ${isArLang ? "سنة" : "years"}</div></div>` : ""}
+  ${age !== null ? `<div class="info-item"><div class="info-label">${isArLang ? "العمر" : "Age"}</div><div class="info-value">${formatNumber(age, locale)} ${isArLang ? "سنة" : "years"}</div></div>` : ""}
   <div class="info-item">
     <div class="info-label">${isArLang ? "عدد الزيارات" : "Total Visits"}</div>
-    <div class="info-value">${appointments.length}</div>
+    <div class="info-value">${formatNumber(appointments.length, locale)}</div>
   </div>
   <div class="info-item">
     <div class="info-label">${isArLang ? "الوصفات الطبية" : "Prescriptions"}</div>
-    <div class="info-value">${prescriptions.length}</div>
+    <div class="info-value">${formatNumber(prescriptions.length, locale)}</div>
   </div>
 </div>
 
@@ -352,7 +525,7 @@ ${medsHTML}
             <line x1="12" y1="18" x2="12" y2="12" />
             <line x1="9" y1="15" x2="15" y2="15" />
           </svg>
-          {isAr ? "تصدير PDF" : "Export PDF"}
+          {isAr ? "إصدار ملف" : "Generate File"}
         </button>
       </div>
 
@@ -379,7 +552,7 @@ ${medsHTML}
                 {patient.phone && <span dir="ltr">{patient.phone}</span>}
                 {age !== null && (
                   <span>
-                    {age} {isAr ? "سنة" : "years old"}
+                    {formatNumber(age, locale)} {isAr ? "سنة" : "years old"}
                   </span>
                 )}
                 {patient.dateOfBirth && (
@@ -415,7 +588,7 @@ ${medsHTML}
                   className="rounded-xl border border-card-border bg-surface-2/50 px-4 py-3 text-center"
                 >
                   <p className={`text-2xl font-extrabold ${s.color}`}>
-                    {s.val}
+                    {formatNumber(s.val, locale)}
                   </p>
                   <p className="text-xs text-muted">{s.label}</p>
                 </div>
@@ -486,8 +659,8 @@ ${medsHTML}
             </p>
             <p className="mt-1 text-sm font-semibold text-foreground">
               {isAr
-                ? `${completedVisits.length} زيارة مكتملة من ${appointments.length}`
-                : `${completedVisits.length} completed of ${appointments.length} visits`}
+                ? `${formatNumber(completedVisits.length, locale)} زيارة مكتملة من ${formatNumber(appointments.length, locale)}`
+                : `${formatNumber(completedVisits.length, locale)} completed of ${formatNumber(appointments.length, locale)} visits`}
             </p>
             <p className="mt-1 text-xs text-muted">
               {recentMedications.length > 0
@@ -547,10 +720,11 @@ ${medsHTML}
                       {appointments.length - idx}
                     </div>
                     {/* Card */}
-                    <div className="flex-1 rounded-xl border border-card-border bg-card px-4 py-3 shadow-sm">
+                    <div className="flex-1 rounded-xl border border-card-border bg-card px-4 py-4 shadow-sm">
                       <div className="flex items-start justify-between gap-2 flex-wrap">
                         <div>
-                          <p className="text-sm font-semibold text-foreground">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-semibold text-foreground">
                             {new Date(appt.startsAt).toLocaleDateString(
                               isAr ? "ar-EG" : "en-GB",
                               {
@@ -560,7 +734,11 @@ ${medsHTML}
                                 day: "numeric",
                               },
                             )}
-                          </p>
+                            </p>
+                            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                              {visitTypeLabel(appt.visitType)}
+                            </span>
+                          </div>
                           <p className="text-xs text-muted mt-0.5">
                             {new Date(appt.startsAt).toLocaleTimeString(
                               isAr ? "ar-EG" : "en-GB",
@@ -575,51 +753,67 @@ ${medsHTML}
                         </Badge>
                       </div>
                       {appt.notes && (
-                        <p className="mt-2 text-xs text-muted leading-relaxed border-t border-card-border pt-2">
-                          {appt.notes}
-                        </p>
+                        <InfoBlock
+                          title={isAr ? "ملاحظات الحجز" : "Booking notes"}
+                          value={appt.notes}
+                        />
                       )}
-                      {prescriptions.some((p) =>
-                        sameDay(p.issuedAt, appt.startsAt),
-                      ) && (
-                        <div className="mt-3 border-t border-card-border pt-3">
-                          <p className="text-xs font-semibold text-foreground">
-                            {isAr ? "ما كتبه الدكتور في نفس اليوم" : "Same-day doctor notes"}
-                          </p>
-                          <div className="mt-2 space-y-2">
-                            {prescriptions
-                              .filter((p) => sameDay(p.issuedAt, appt.startsAt))
-                              .map((p) => {
-                                const meds = parseMedications(p.medications);
+                      {prescriptionsForVisit(appt).length > 0 && (
+                        <div className="mt-3 space-y-3 border-t border-card-border pt-3">
+                          {prescriptionsForVisit(appt).map((p) => {
+                                const payload = parsePrescriptionPayload(p.medications);
                                 return (
                                   <div
                                     key={p.id}
-                                    className="rounded-lg bg-surface-2/60 px-3 py-2"
+                                    className="space-y-3 rounded-lg bg-surface-2/60 px-3 py-3"
                                   >
                                     {p.diagnosis && (
-                                      <p className="text-xs text-muted">
-                                        {isAr ? "التشخيص: " : "Diagnosis: "}
-                                        <span className="text-foreground">
-                                          {p.diagnosis}
-                                        </span>
-                                      </p>
+                                      <InfoBlock
+                                        title={isAr ? "التشخيص" : "Diagnosis"}
+                                        value={p.diagnosis}
+                                        compact
+                                      />
                                     )}
-                                    {meds.length > 0 && (
-                                      <ul className="mt-1 space-y-0.5">
-                                        {meds.slice(0, 4).map((m, i) => (
-                                          <li
-                                            key={i}
-                                            className="text-xs text-foreground"
-                                          >
-                                            {m}
-                                          </li>
-                                        ))}
-                                      </ul>
+                                    {payload.medications.length > 0 && (
+                                      <ListBlock
+                                        title={isAr ? "الأدوية" : "Medications"}
+                                        items={payload.medications}
+                                      />
+                                    )}
+                                    {payload.tests.length > 0 && (
+                                      <ListBlock
+                                        title={isAr ? "التحاليل المطلوبة" : "Requested tests"}
+                                        items={payload.tests}
+                                      />
+                                    )}
+                                    {payload.imaging.length > 0 && (
+                                      <ListBlock
+                                        title={isAr ? "الأشعة المطلوبة" : "Requested imaging"}
+                                        items={payload.imaging}
+                                      />
+                                    )}
+                                    {(payload.notes || p.notes) && (
+                                      <InfoBlock
+                                        title={isAr ? "ملاحظات" : "Notes"}
+                                        value={payload.notes || p.notes || ""}
+                                        compact
+                                      />
                                     )}
                                   </div>
                                 );
                               })}
-                          </div>
+                        </div>
+                      )}
+                      {attachmentsForVisit(appt).length > 0 && (
+                        <div className="mt-3 border-t border-card-border pt-3">
+                          <p className="mb-2 text-xs font-semibold text-muted">
+                            {isAr ? "ملفات الزيارة" : "Visit files"}
+                          </p>
+                          <FileGrid
+                            files={attachmentsForVisit(appt)}
+                            isAr={isAr}
+                            onPreview={setPreviewFile}
+                          />
                         </div>
                       )}
                     </div>
@@ -640,7 +834,8 @@ ${medsHTML}
             </div>
           ) : (
             prescriptions.map((p) => {
-              const meds = parseMedications(p.medications);
+              const payload = parsePrescriptionPayload(p.medications);
+              const meds = payload.medications;
               return (
                 <Card key={p.id}>
                   <CardBody>
@@ -695,10 +890,20 @@ ${medsHTML}
                         <span className="text-foreground">{p.diagnosis}</span>
                       </p>
                     )}
-                    {p.notes && (
+                    {(payload.notes || p.notes) && (
                       <p className="mt-3 text-xs text-muted italic border-t border-card-border pt-2">
-                        {p.notes}
+                        {payload.notes || p.notes}
                       </p>
+                    )}
+                    {payload.tests.length > 0 && (
+                      <div className="mt-3 border-t border-card-border pt-2">
+                        <ListBlock title={isAr ? "التحاليل المطلوبة" : "Requested tests"} items={payload.tests} />
+                      </div>
+                    )}
+                    {payload.imaging.length > 0 && (
+                      <div className="mt-3 border-t border-card-border pt-2">
+                        <ListBlock title={isAr ? "الأشعة المطلوبة" : "Requested imaging"} items={payload.imaging} />
+                      </div>
                     )}
                   </CardBody>
                 </Card>
@@ -751,57 +956,57 @@ ${medsHTML}
               {isAr ? "لا توجد ملفات مرفقة" : "No attachments uploaded"}
             </div>
           ) : (
-            attachments.map((a) => (
-              <a
-                key={a.id}
-                href={a.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-xl border border-card-border bg-card px-4 py-3 hover:bg-surface-2 transition-colors"
-              >
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                    <polyline points="14 2 14 8 20 8" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {a.name}
-                  </p>
-                  <p className="text-xs text-muted">
-                    {new Date(a.uploadedAt).toLocaleDateString(
-                      isAr ? "ar-EG" : "en-GB",
-                    )}
-                  </p>
-                </div>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="shrink-0 text-muted"
-                >
-                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                  <polyline points="15 3 21 3 21 9" />
-                  <line x1="10" y1="14" x2="21" y2="3" />
-                </svg>
-              </a>
-            ))
+            <FileGrid files={attachments} isAr={isAr} onPreview={setPreviewFile} />
           )}
+        </div>
+      )}
+      {previewFile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-lg border border-card-border bg-card shadow-card-md">
+            <div className="flex items-center justify-between gap-3 border-b border-card-border px-4 py-3">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">
+                  {previewFile.name}
+                </p>
+                <p className="text-xs text-muted">
+                  {new Date(previewFile.uploadedAt).toLocaleDateString(
+                    isAr ? "ar-EG" : "en-GB",
+                  )}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewFile(null)}
+                className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:bg-surface-2"
+              >
+                {isAr ? "إغلاق" : "Close"}
+              </button>
+            </div>
+            <div className="max-h-[78vh] overflow-auto bg-surface p-4">
+              {isImage(previewFile) ? (
+                <img
+                  src={fileUrl(previewFile)}
+                  alt={previewFile.name}
+                  className="mx-auto max-h-[72vh] rounded object-contain"
+                />
+              ) : isPdf(previewFile) ? (
+                <iframe
+                  src={fileUrl(previewFile)}
+                  title={previewFile.name}
+                  className="h-[72vh] w-full rounded bg-white"
+                />
+              ) : (
+                <a
+                  href={fileUrl(previewFile)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
+                >
+                  {isAr ? "فتح الملف" : "Open file"}
+                </a>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

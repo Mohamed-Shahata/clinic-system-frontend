@@ -4,6 +4,7 @@ import { ClinicSettingsForm } from "@/components/dashboard/clinic-settings-form"
 import { ProfileSettingsForm } from "@/components/dashboard/profile-settings-form";
 import { CreateReceptionistButton } from "@/components/dashboard/create-buttons";
 import { AppearanceSettings } from "@/components/dashboard/appearance-settings";
+import { DoctorPaymentForm } from "@/components/dashboard/doctor-payment-form";
 import { SubscriptionTimer } from "@/components/dashboard/subscription-timer";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -27,6 +28,25 @@ async function fetchClinicSettings(clinicId: string, token: string) {
   }
 }
 
+async function fetchDoctors(token: string) {
+  try {
+    const res = await fetch(`${getBackendBaseUrl()}/api/users/doctors`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return res.json() as Promise<
+      Array<{
+        id: string;
+        consultationFee?: string | null;
+        followUpFee?: string | null;
+      }>
+    >;
+  } catch {
+    return [];
+  }
+}
+
 export default async function SettingsPage({
   params,
 }: {
@@ -39,9 +59,11 @@ export default async function SettingsPage({
 
   const jar = await cookies();
   const token = jar.get("access_token")?.value ?? "";
-  const clinicData = session.clinicId
-    ? await fetchClinicSettings(session.clinicId, token)
-    : null;
+  const [clinicData, doctors] = await Promise.all([
+    session.clinicId ? fetchClinicSettings(session.clinicId, token) : null,
+    fetchDoctors(token),
+  ]);
+  const currentDoctor = doctors.find((doctor) => doctor.id === session.userId) ?? doctors[0];
 
   const clinic =
     session.clinicName && session.clinicSlug
@@ -87,6 +109,21 @@ export default async function SettingsPage({
             </Link>
           </div>
         </div>
+
+        {currentDoctor ? (
+          <div className="rounded-lg border border-card-border bg-card p-4">
+            <h2 className="text-sm font-semibold text-foreground">
+              {isAr ? "أسعار الكشف والمتابعة" : "Consultation and follow-up prices"}
+            </h2>
+            <div className="mt-3">
+              <DoctorPaymentForm
+                userId={currentDoctor.id}
+                initialConsultationFee={currentDoctor.consultationFee}
+                initialFollowUpFee={currentDoctor.followUpFee}
+              />
+            </div>
+          </div>
+        ) : null}
 
         {/* Clinic Settings — pass current logoUrl from backend */}
         <ClinicSettingsForm

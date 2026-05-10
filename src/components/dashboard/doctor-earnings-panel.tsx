@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Card, CardBody, CardHeader, Badge } from "@/components/ui";
+import { formatNumber, formatPercent } from "@/lib/dashboard-format";
 
 type Row = {
   doctorId: string;
@@ -18,6 +19,7 @@ type Row = {
 
 export function DoctorEarningsPanel() {
   const t = useTranslations("dashboard.reports");
+  const locale = useLocale();
   const [rows, setRows] = useState<Row[]>([]);
 
   useEffect(() => {
@@ -49,16 +51,16 @@ export function DoctorEarningsPanel() {
                   <td className="px-3 py-2">
                     <Badge variant="muted">
                       {row.paymentMode === "FIXED_RENT"
-                        ? `${t("earningsRentPrefix")} ${Number(row.fixedMonthlyRent ?? 0).toLocaleString()}`
+                        ? `${t("earningsRentPrefix")} ${formatNumber(row.fixedMonthlyRent ?? 0, locale)}`
                         : row.paymentMode === "PERCENTAGE"
-                          ? `${Number(row.adminPercentage ?? 0)}%`
+                          ? formatPercent(Number(row.adminPercentage ?? 0), locale)
                           : t("earningsUnset")}
                     </Badge>
                   </td>
-                  <td className="px-3 py-2 text-end">{row.patientCount}</td>
-                  <td className="px-3 py-2 text-end">{row.grossAmount.toLocaleString()} EGP</td>
-                  <td className="px-3 py-2 text-end">{row.deduction.toLocaleString()} EGP</td>
-                  <td className="px-3 py-2 text-end font-medium">{row.netAmount.toLocaleString()} EGP</td>
+                  <td className="px-3 py-2 text-end">{formatNumber(row.patientCount, locale)}</td>
+                  <td className="px-3 py-2 text-end">{formatNumber(row.grossAmount, locale)} EGP</td>
+                  <td className="px-3 py-2 text-end">{formatNumber(row.deduction, locale)} EGP</td>
+                  <td className="px-3 py-2 text-end font-medium">{formatNumber(row.netAmount, locale)} EGP</td>
                 </tr>
               ))}
               {rows.length === 0 && <tr><td colSpan={6} className="px-3 py-6 text-center text-muted">{t("earningsEmpty")}</td></tr>}

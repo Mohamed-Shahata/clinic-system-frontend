@@ -33,13 +33,12 @@ type QueueItem = {
   doctor: { id: string; fullName: string };
 };
 
-type MedicationRow = { name: string; dose: string; duration: string };
+type MedicationRow = { name: string; dose: string; frequency: string };
 
 type CatalogMedication = {
   name: string;
   dose?: string;
   frequency?: string;
-  duration?: string;
 };
 
 type Template = {
@@ -50,7 +49,7 @@ type Template = {
 const emptyMedication = (): MedicationRow => ({
   name: "",
   dose: "",
-  duration: "",
+  frequency: "",
 });
 
 /* ── CatalogSelect: searchable dropdown from catalog ── */
@@ -137,7 +136,7 @@ function statusBadge(status: string, isAr: boolean) {
       labelAr: string;
     }
   > = {
-    IN_QUEUE: { variant: "default", label: "In Queue", labelAr: "في الانتظار" },
+    IN_QUEUE: { variant: "default", label: "Waiting", labelAr: "قيد الانتظار" },
     IN_PROGRESS: {
       variant: "warning",
       label: "In Progress",
@@ -145,8 +144,8 @@ function statusBadge(status: string, isAr: boolean) {
     },
     COMPLETED: { variant: "success", label: "Completed", labelAr: "مكتمل" },
     CANCELLED: { variant: "danger", label: "Cancelled", labelAr: "ملغي" },
-    BOOKED: { variant: "default", label: "Booked", labelAr: "محجوز" },
-    CHECKED_IN: { variant: "default", label: "Checked In", labelAr: "وصل" },
+    BOOKED: { variant: "default", label: "Waiting", labelAr: "قيد الانتظار" },
+    CHECKED_IN: { variant: "default", label: "Waiting", labelAr: "قيد الانتظار" },
   };
   const entry = map[status] ?? {
     variant: "default" as const,
@@ -184,8 +183,9 @@ export function WorkspaceClientPage({
   );
   const [loadingStart, setLoadingStart] = useState<string | null>(null);
   const [loadingEnd, setLoadingEnd] = useState(false);
-  const [savingDraft, setSavingDraft] = useState(false);
   const [savingSystem, setSavingSystem] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadingFile, setUploadingFile] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSavedPrescriptionId, setLastSavedPrescriptionId] = useState<
@@ -227,14 +227,15 @@ export function WorkspaceClientPage({
     medications: isAr ? "الأدوية" : "Medications",
     medicine: isAr ? "اسم الدواء" : "Medication",
     dose: isAr ? "الجرعة" : "Dose",
-    duration: isAr ? "المدة" : "Duration",
+    frequency: isAr ? "التكرار" : "Frequency",
     add: isAr ? "إضافة" : "Add",
     remove: isAr ? "حذف" : "Remove",
-    saveDraft: isAr ? "حفظ مسودة" : "Save Draft",
     saveSystem: isAr ? "حفظ في السيستم" : "Save to System",
     printRx: isAr ? "طباعة الروشتة" : "Print Prescription",
     endVisit: isAr ? "إنهاء الكشف" : "End Visit",
     savedOk: isAr ? "تم الحفظ بنجاح." : "Saved successfully.",
+    optionalFile: isAr ? "ملف اختياري" : "Optional file",
+    optionalFileHint: isAr ? "ارفع صورة أو PDF لحفظها في ملف المريض." : "Upload an image or PDF to store with the patient.",
     age: isAr ? "العمر" : "Age",
     years: isAr ? "سنة" : "yrs",
     code: isAr ? "الكود" : "Code",
@@ -309,14 +310,13 @@ export function WorkspaceClientPage({
   async function savePrescription(isDraft: boolean) {
     if (!activeItem) return;
     setSaveError(null);
-    if (isDraft) setSavingDraft(true);
-    else setSavingSystem(true);
+    setSavingSystem(true);
     try {
       const meds = rows
         .map((r) => ({
           name: r.name.trim(),
           dose: r.dose.trim(),
-          duration: r.duration.trim(),
+          frequency: r.frequency.trim(),
         }))
         .filter((r) => r.name);
 
@@ -346,17 +346,32 @@ export function WorkspaceClientPage({
       const saved = (await res.json()) as { id?: string };
       setSavedAt(new Date().toISOString());
       if (saved?.id) setLastSavedPrescriptionId(saved.id);
+      if (uploadFile) {
+        setUploadingFile(true);
+        const formData = new FormData();
+        formData.append("file", uploadFile);
+        const uploadRes = await fetch(
+          `/api/patients/${activeItem.patient.id}?appointmentId=${activeItem.id}`,
+          { method: "POST", body: formData },
+        );
+        if (!uploadRes.ok) {
+          addToast("error", isAr ? "تم حفظ الكشف لكن تعذر رفع الملف" : "Encounter saved, but file upload failed");
+        } else {
+          setUploadFile(null);
+        }
+      }
       addToast("success", L.savedOk);
     } catch {
       setSaveError(isAr ? "حدث خطأ" : "Something went wrong");
     } finally {
-      setSavingDraft(false);
       setSavingSystem(false);
+      setUploadingFile(false);
     }
   }
 
   /* ── Print prescription ── */
   function printPrescription() {
+    if (!activeItem) return;
     if (!lastSavedPrescriptionId) {
       addToast(
         "error",
@@ -364,10 +379,15 @@ export function WorkspaceClientPage({
       );
       return;
     }
-    window.open(
-      `/api/prescriptions/${lastSavedPrescriptionId}/print`,
-      "_blank",
-    );
+    const meds = rows
+      .filter((row) => row.name.trim())
+      .map((row) => [row.name, row.dose, row.frequency].filter(Boolean).join(" - "));
+    const html = `<!doctype html><html lang="${locale}" dir="${isAr ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>${activeItem.patient.fullName}</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.7;color:#111}.head{border-bottom:2px solid #2563eb;padding-bottom:12px;margin-bottom:20px}.muted{color:#666;font-size:12px}.section{margin-top:18px}.label{font-weight:700;color:#2563eb}li{margin-bottom:4px}</style></head><body><div class="head"><h2>${template?.header?.clinicName ?? ""}</h2><div>${doctorInfo.fullName}</div><div class="muted">${new Date().toLocaleDateString(isAr ? "ar-EG" : "en-GB")}</div></div><h3>${activeItem.patient.fullName}</h3>${diagnosis ? `<div class="section"><span class="label">${L.diagnosis}: </span>${diagnosis}</div>` : ""}${meds.length ? `<div class="section"><div class="label">${L.medications}</div><ul>${meds.map((m) => `<li>${m}</li>`).join("")}</ul></div>` : ""}${requestedTests.filter(Boolean).length ? `<div class="section"><div class="label">${L.tests}</div>${requestedTests.filter(Boolean).join("، ")}</div>` : ""}${requestedImaging.filter(Boolean).length ? `<div class="section"><div class="label">${L.imaging}</div>${requestedImaging.filter(Boolean).join("، ")}</div>` : ""}${notes ? `<div class="section"><span class="label">${L.notesLabel}: </span>${notes}</div>` : ""}</body></html>`;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 300);
   }
 
   /* ── End visit (IN_PROGRESS → COMPLETED) ── */
@@ -410,7 +430,7 @@ export function WorkspaceClientPage({
       dose: match
         ? [match.dose, match.frequency].filter(Boolean).join(" - ")
         : (rows[index]?.dose ?? ""),
-      duration: match?.duration ?? rows[index]?.duration ?? "",
+      frequency: match?.frequency ?? rows[index]?.frequency ?? "",
     });
   }
 
@@ -693,10 +713,10 @@ export function WorkspaceClientPage({
                           }
                         />
                         <Input
-                          label={L.duration}
-                          value={row.duration}
+                          label={L.frequency}
+                          value={row.frequency}
                           onChange={(e) =>
-                            updateRow(idx, { duration: e.target.value })
+                            updateRow(idx, { frequency: e.target.value })
                           }
                         />
                         <Button
@@ -815,21 +835,25 @@ export function WorkspaceClientPage({
 
                   {saveError && <Alert variant="error">{saveError}</Alert>}
                   {savedAt && <Alert variant="success">{L.savedOk}</Alert>}
+                  <div className="rounded-lg border border-dashed border-card-border bg-surface px-3 py-3">
+                    <p className="text-sm font-semibold text-foreground">
+                      {L.optionalFile}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">{L.optionalFileHint}</p>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
+                      className="mt-3 block w-full text-sm text-muted file:me-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
+                    />
+                  </div>
 
                   {/* Action buttons */}
                   <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
                     <Button
-                      variant="secondary"
-                      loading={savingDraft}
-                      disabled={savingSystem || loadingEnd}
-                      onClick={() => void savePrescription(true)}
-                    >
-                      {L.saveDraft}
-                    </Button>
-                    <Button
                       variant="primary"
-                      loading={savingSystem}
-                      disabled={savingDraft || loadingEnd}
+                      loading={savingSystem || uploadingFile}
+                      disabled={loadingEnd}
                       onClick={() => void savePrescription(false)}
                     >
                       {L.saveSystem}
@@ -839,7 +863,6 @@ export function WorkspaceClientPage({
                       onClick={printPrescription}
                       disabled={
                         !lastSavedPrescriptionId ||
-                        savingDraft ||
                         savingSystem ||
                         loadingEnd
                       }
@@ -849,7 +872,7 @@ export function WorkspaceClientPage({
                     <Button
                       variant="danger"
                       loading={loadingEnd}
-                      disabled={savingDraft || savingSystem}
+                      disabled={savingSystem}
                       onClick={() => void endVisit()}
                     >
                       ✓ {L.endVisit}

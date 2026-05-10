@@ -24,7 +24,6 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
   const [name, setName] = useState("");
   const [dose, setDose] = useState("");
   const [frequency, setFrequency] = useState("");
-  const [duration, setDuration] = useState("");
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -47,14 +46,13 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
         kind === "medications"
-          ? { name, dose, frequency, duration, notes }
+          ? { name, dose, frequency }
           : { name, category, notes },
       ),
     });
     setName("");
     setDose("");
     setFrequency("");
-    setDuration("");
     setCategory("");
     setNotes("");
     setShowModal(false);
@@ -117,7 +115,7 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
                       </p>
                       <p className="text-xs text-muted">
                         {kind === "medications"
-                          ? [item.dose, item.frequency, item.duration]
+                          ? [item.dose, item.frequency]
                               .filter(Boolean)
                               .join(" · ")
                           : item.category}
@@ -172,11 +170,6 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
                 value={frequency}
                 onChange={(e) => setFrequency(e.target.value)}
               />
-              <Input
-                label={t("duration")}
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-              />
             </>
           ) : (
             <Input
@@ -185,11 +178,13 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
               onChange={(e) => setCategory(e.target.value)}
             />
           )}
-          <Input
-            label={t("notes")}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          {kind === "medications" ? null : (
+            <Input
+              label={t("notes")}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          )}
           <div className="flex justify-end gap-2">
             <Button
               type="button"

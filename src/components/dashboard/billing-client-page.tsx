@@ -146,12 +146,6 @@ function InvoiceFormFields({
               labelAr: "فودافون كاش",
               labelEn: "Vodafone Cash",
             },
-            { value: "card", labelAr: "بطاقة", labelEn: "Card" },
-            {
-              value: "insurance",
-              labelAr: "تأمين",
-              labelEn: "Insurance",
-            },
           ].map((opt) => (
             <button
               key={opt.value}
@@ -211,14 +205,10 @@ export function BillingClientPage({
   const paymentLabels: Record<string, string> = {
     cash: isAr ? "نقدي" : "Cash",
     vodafone_cash: isAr ? "فودافون كاش" : "Vodafone Cash",
-    card: isAr ? "بطاقة" : "Card",
-    insurance: isAr ? "تأمين" : "Insurance",
   };
   const paymentIcons: Record<string, string> = {
     cash: "💵",
     vodafone_cash: "📱",
-    card: "💳",
-    insurance: "🏥",
   };
 
   const filteredInvoices = useMemo(() => {

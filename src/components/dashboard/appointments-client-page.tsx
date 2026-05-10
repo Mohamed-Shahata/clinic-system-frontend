@@ -21,7 +21,13 @@ type Patient = {
   fullName: string;
   phone?: string | null;
 };
-type Doctor = { id: string; fullName: string; specialty: string | null };
+type Doctor = {
+  id: string;
+  fullName: string;
+  specialty: string | null;
+  consultationFee?: string | number | null;
+  followUpFee?: string | number | null;
+};
 type Appointment = {
   id: string;
   startsAt: string;
@@ -259,6 +265,15 @@ export function AppointmentsClientPage({
     0,
   );
 
+  function defaultFee(doctorId = bDoctorId, visitType = bVisitType) {
+    const doctor = doctors.find((d) => d.id === doctorId) ?? doctors[0];
+    const fee =
+      visitType === "FOLLOW_UP"
+        ? doctor?.followUpFee
+        : doctor?.consultationFee;
+    return String(fee ?? (visitType === "FOLLOW_UP" ? 150 : 300));
+  }
+
   function openBooking() {
     setStep(0);
     setPatientFlow("existing");
@@ -278,7 +293,7 @@ export function AppointmentsClientPage({
     setBNotes("");
     setBError(null);
     setBookedAppointmentId(null);
-    setInvServices([{ name: "Consultation", amount: "300" }]);
+    setInvServices([{ name: "Consultation", amount: defaultFee(doctors[0]?.id ?? "", "NEW_VISIT") }]);
     setInvPaymentMethod("cash");
     setInvError(null);
     setSkipInvoice(false);
@@ -496,7 +511,7 @@ export function AppointmentsClientPage({
   }, [appointments, filterDate, filterStatus]);
 
   const statusLabels: Record<string, string> = {
-    IN_QUEUE: isAr ? "في الطابور" : "In Queue",
+    IN_QUEUE: isAr ? "قيد الانتظار" : "Waiting",
     IN_PROGRESS: isAr ? "قيد التنفيذ" : "In Progress",
     COMPLETED: isAr ? "مكتمل" : "Completed",
     CANCELLED: isAr ? "ملغي" : "Cancelled",
@@ -534,7 +549,7 @@ export function AppointmentsClientPage({
       );
       const msgs: Record<string, string> = {
         CANCELLED: isAr ? "تم إلغاء الموعد" : "Appointment cancelled",
-        IN_QUEUE: isAr ? "تم إرسال المريض للطابور" : "Patient sent to queue",
+        IN_QUEUE: isAr ? "تم إرسال المريض للطبيب" : "Patient sent to doctor",
         IN_PROGRESS: isAr ? "تم بدء الموعد" : "Appointment started",
         COMPLETED: isAr ? "تم إكمال الموعد" : "Appointment completed",
       };
@@ -1083,23 +1098,17 @@ export function AppointmentsClientPage({
             )}
 
             {/* Doctor */}
-            {doctors.length === 1 ? (
-              <div className="rounded border border-border bg-surface-2 px-3 py-2">
-                <p className="text-xs text-muted">
-                  {isAr ? "الطبيب" : "Doctor"}
-                </p>
-                <p className="text-sm font-medium text-foreground">
-                  {doctors[0].fullName}
-                </p>
-              </div>
-            ) : (
+            {doctors.length > 1 ? (
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-foreground">
                   {isAr ? "الطبيب" : "Doctor"}
                 </label>
                 <select
                   value={bDoctorId}
-                  onChange={(e) => setBDoctorId(e.target.value)}
+                  onChange={(e) => {
+                    setBDoctorId(e.target.value);
+                    setInvServices([{ name: "Consultation", amount: defaultFee(e.target.value, bVisitType) }]);
+                  }}
                   className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
                 >
                   {doctors.map((d) => (
@@ -1109,7 +1118,7 @@ export function AppointmentsClientPage({
                   ))}
                 </select>
               </div>
-            )}
+            ) : null}
 
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-foreground">
@@ -1117,7 +1126,10 @@ export function AppointmentsClientPage({
               </label>
               <select
                 value={bVisitType}
-                onChange={(e) => setBVisitType(e.target.value)}
+              onChange={(e) => {
+                setBVisitType(e.target.value);
+                setInvServices([{ name: "Consultation", amount: defaultFee(bDoctorId, e.target.value) }]);
+              }}
                 className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
               >
                 <option value="NEW_VISIT">
@@ -1172,8 +1184,8 @@ export function AppointmentsClientPage({
                 </p>
                 <p className="text-xs text-muted">
                   {isAr
-                    ? "الآن يمكنك إصدار فاتورة أو تخطيها"
-                    : "You can now issue an invoice or skip"}
+                    ? "الآن يمكنك إنشاء فاتورة أو تخطيها"
+                    : "You can now create an invoice or skip"}
                 </p>
               </div>
             </div>
@@ -1228,7 +1240,7 @@ export function AppointmentsClientPage({
                 {isAr ? "تخطي الفاتورة" : "Skip Invoice"}
               </Button>
               <Button loading={invPending} onClick={() => void submitInvoice()}>
-                {isAr ? "إصدار الفاتورة" : "Issue Invoice"}
+                {isAr ? "إنشاء فاتورة" : "Create Invoice"}
               </Button>
             </div>
           </div>
@@ -1240,16 +1252,12 @@ export function AppointmentsClientPage({
         open={Boolean(editing)}
         onClose={() => setEditing(null)}
         title={isAr ? "تعديل الموعد" : "Edit Appointment"}
-        description={
-          isAr
-            ? "غيّر الطبيب أو نوع الزيارة والملاحظات"
-            : "Change doctor, visit type, or notes"
-        }
+        description={isAr ? "غيّر نوع الزيارة والملاحظات" : "Change visit type or notes"}
         closeLabel={isAr ? "إغلاق" : "Close"}
       >
         {editError && <Alert variant="error">{editError}</Alert>}
         <div className="space-y-4 mt-2">
-          <div className="space-y-1.5">
+          {doctors.length > 1 ? <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">
               {isAr ? "الطبيب" : "Doctor"}
             </label>
@@ -1264,7 +1272,7 @@ export function AppointmentsClientPage({
                 </option>
               ))}
             </select>
-          </div>
+          </div> : null}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">
               {isAr ? "نوع الزيارة" : "Visit Type"}

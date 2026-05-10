@@ -26,6 +26,7 @@ export function ReportsPdfButton({
   paymentBreakdown = {},
   pendingCount = 0,
 }: ReportsPdfButtonProps) {
+  const isAr = locale === "ar";
   function downloadReport() {
     const doc = new jsPDF({
       orientation: "portrait",
@@ -37,12 +38,13 @@ export function ReportsPdfButton({
     const marginR = 18;
     const contentW = pageW - marginL - marginR;
     const today = new Date();
-    const dateStr = today.toLocaleDateString("en-GB", {
+    const dateLocale = isAr ? "ar-EG" : "en-GB";
+    const dateStr = today.toLocaleDateString(dateLocale, {
       day: "2-digit",
       month: "long",
       year: "numeric",
     });
-    const timeStr = today.toLocaleTimeString("en-GB", {
+    const timeStr = today.toLocaleTimeString(dateLocale, {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -56,12 +58,12 @@ export function ReportsPdfButton({
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("CLINIC PERFORMANCE REPORT", marginL, 17);
+    doc.text(isAr ? "CLINIC REPORT" : "CLINIC PERFORMANCE REPORT", marginL, 17);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(`Clinic: ${clinicName ?? "—"}`, marginL, 25);
-    doc.text(`Generated: ${dateStr}  ${timeStr}`, marginL, 31);
+    doc.text(`${isAr ? "Clinic" : "Clinic"}: ${clinicName ?? "—"}`, marginL, 25);
+    doc.text(`${isAr ? "Generated" : "Generated"}: ${dateStr}  ${timeStr}`, marginL, 31);
 
     y = 48;
 
@@ -104,12 +106,12 @@ export function ReportsPdfButton({
     // 4-box KPI grid
     const boxes = [
       {
-        label: "Total Revenue",
-        value: `${revenue.toLocaleString("en-GB")} EGP`,
+        label: isAr ? "Revenue" : "Total Revenue",
+        value: `${revenue.toLocaleString(dateLocale)} EGP`,
       },
-      { label: "Invoices Issued", value: String(invoicesCount) },
-      { label: "Completed Visits", value: String(completedCount) },
-      { label: "Pending Appointments", value: String(pendingCount) },
+      { label: isAr ? "Invoices" : "Invoices Issued", value: invoicesCount.toLocaleString(dateLocale) },
+      { label: isAr ? "Completed" : "Completed Visits", value: completedCount.toLocaleString(dateLocale) },
+      { label: isAr ? "Pending" : "Pending Appointments", value: pendingCount.toLocaleString(dateLocale) },
     ];
     const boxW = contentW / 2 - 3;
     const boxH = 18;
@@ -156,7 +158,7 @@ export function ReportsPdfButton({
 
         doc.setTextColor(20, 20, 20);
         doc.setFont("helvetica", "bold");
-        doc.text(`${amount.toLocaleString("en-GB")} EGP`, pageW - marginR, y, {
+        doc.text(`${amount.toLocaleString(dateLocale)} EGP`, pageW - marginR, y, {
           align: "right",
         });
         y += 9;
@@ -176,13 +178,13 @@ export function ReportsPdfButton({
       const totalPay = paymentEntries.reduce((s, [, v]) => s + v, 0);
       const labels: Record<string, string> = {
         cash: "Cash",
-        card: "Card",
-        insurance: "Insurance",
+        vodafone_cash: isAr ? "Vodafone Cash" : "Vodafone Cash",
         CASH: "Cash",
-        CARD: "Card",
-        INSURANCE: "Insurance",
+        VODAFONE_CASH: "Vodafone Cash",
       };
-      paymentEntries.forEach(([method, amount]) => {
+      paymentEntries
+        .filter(([method]) => ["cash", "vodafone_cash", "CASH", "VODAFONE_CASH"].includes(method))
+        .forEach(([method, amount]) => {
         const pct = totalPay > 0 ? Math.round((amount / totalPay) * 100) : 0;
         const barW = (amount / (totalPay || 1)) * (contentW - 60);
         doc.setFillColor(99, 162, 235);
@@ -196,7 +198,7 @@ export function ReportsPdfButton({
         doc.setFont("helvetica", "bold");
         doc.setTextColor(20, 20, 20);
         doc.text(
-          `${amount.toLocaleString("en-GB")} EGP  (${pct}%)`,
+          `${amount.toLocaleString(dateLocale)} EGP  (${pct.toLocaleString(dateLocale)}%)`,
           pageW - marginR,
           y,
           { align: "right" },
@@ -215,7 +217,7 @@ export function ReportsPdfButton({
     if (casesByDoctor.length > 0) {
       sectionTitle("Cases by Doctor");
       casesByDoctor.forEach((item) => {
-        row(item.doctor, `${item.count} cases`);
+        row(item.doctor, `${item.count.toLocaleString(dateLocale)} ${isAr ? "cases" : "cases"}`);
         if (y > 270) {
           doc.addPage();
           y = 20;
@@ -247,7 +249,7 @@ export function ReportsPdfButton({
 
   return (
     <Button type="button" variant="secondary" onClick={downloadReport}>
-      ↓ Download PDF Report
+      {isAr ? "تحميل تقرير PDF ↓" : "Download PDF Report ↓"}
     </Button>
   );
 }

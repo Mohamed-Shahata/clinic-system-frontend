@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Alert, Badge, Button } from "@/components/ui";
+import { roleLabel } from "@/lib/dashboard-format";
 
 type StaffDetails = {
   id: string;
@@ -33,6 +34,7 @@ export function StaffActions({
   const [details, setDetails] = useState<StaffDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function load() {
     setOpen(true);
@@ -48,13 +50,13 @@ export function StaffActions({
       setError(isAr ? "لا يمكنك حذف نفسك." : "You cannot delete yourself.");
       return;
     }
-    if (!confirm(isAr ? `حذف ${name}؟` : `Delete ${name}?`)) return;
     setPending(true);
     try {
       const res = await fetch(`/api/users/staff/${userId}`, { method: "DELETE" });
       if (res.ok) router.refresh();
     } finally {
       setPending(false);
+      setConfirmDelete(false);
     }
   }
 
@@ -69,7 +71,7 @@ export function StaffActions({
           variant="danger"
           size="sm"
           loading={pending}
-          onClick={remove}
+          onClick={() => setConfirmDelete(true)}
           disabled={userId === currentUserId}
         >
           {isAr ? "حذف" : "Delete"}
@@ -94,7 +96,7 @@ export function StaffActions({
                 <p className="text-muted">{details.email ?? (isAr ? "لا يوجد بريد إلكتروني" : "No email")}</p>
                 <p className="text-muted">{details.phone ?? (isAr ? "لا يوجد هاتف" : "No phone")}</p>
                 <div className="flex gap-2">
-                  <Badge>{details.role}</Badge>
+                  <Badge>{roleLabel(details.role, locale)}</Badge>
                   <Badge variant={details.isActive ? "success" : "danger"}>
                     {details.isActive ? (isAr ? "نشط" : "Active") : (isAr ? "غير نشط" : "Inactive")}
                   </Badge>
@@ -103,6 +105,26 @@ export function StaffActions({
                 <p className="text-xs text-muted">{new Date(details.createdAt).toLocaleDateString()}</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-card-border bg-card p-5 shadow-card-md">
+            <h2 className="text-sm font-semibold text-foreground">
+              {isAr ? "تأكيد الحذف" : "Confirm Delete"}
+            </h2>
+            <p className="mt-2 text-sm text-muted">
+              {isAr ? `هل تريد حذف ${name}؟` : `Delete ${name}?`}
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
+                {isAr ? "إلغاء" : "Cancel"}
+              </Button>
+              <Button type="button" variant="danger" size="sm" loading={pending} onClick={() => void remove()}>
+                {isAr ? "حذف" : "Delete"}
+              </Button>
+            </div>
           </div>
         </div>
       )}

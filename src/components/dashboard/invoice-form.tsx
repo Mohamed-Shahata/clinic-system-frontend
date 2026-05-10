@@ -57,11 +57,11 @@ export function InvoiceForm({ patients }: { patients: Patient[] }) {
             <label className="block text-sm font-medium text-foreground">Payment</label>
             <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="w-full rounded border border-border bg-surface px-3 py-2 text-sm">
               <option value="cash">Cash</option>
-              <option value="card">Card</option>
+              <option value="vodafone_cash">Vodafone Cash</option>
             </select>
           </div>
           {error && <Alert variant="error">{error}</Alert>}
-          <Button type="submit" loading={pending} className="w-full">Issue Invoice</Button>
+          <Button type="submit" loading={pending} className="w-full">Create Invoice</Button>
         </form>
       </CardBody>
     </Card>
