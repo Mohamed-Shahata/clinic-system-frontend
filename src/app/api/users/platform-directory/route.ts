@@ -8,19 +8,24 @@ async function getToken() {
 }
 
 export async function GET(request: NextRequest) {
-  const token = await getToken();
-  if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  try {
+    const token = await getToken();
+    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const url = new URL(`${getBackendBaseUrl()}/api/users/platform-directory`);
-  for (const key of ["role", "clinicId", "q"]) {
-    const value = request.nextUrl.searchParams.get(key);
-    if (value) url.searchParams.set(key, value);
+    const url = new URL(`${getBackendBaseUrl()}/api/users/platform-directory`);
+    for (const key of ["role", "clinicId", "q"]) {
+      const value = request.nextUrl.searchParams.get(key);
+      if (value) url.searchParams.set(key, value);
+    }
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
   }
-
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
 }

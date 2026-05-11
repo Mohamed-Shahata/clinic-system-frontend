@@ -1,11 +1,14 @@
 import Link from "next/link";
 
-export default async function NotFound({
-  params,
-}: {
-  params: Promise<{ locale: string }>;
-}) {
-  const { locale } = await params;
+import { normalizeAppLocale } from "@/lib/i18n/locale-utils";
+
+type NotFoundProps = {
+  params?: Promise<{ locale?: string }> | { locale?: string };
+};
+
+export default async function NotFound({ params }: NotFoundProps = {}) {
+  const resolvedParams = await params;
+  const locale = normalizeAppLocale(resolvedParams?.locale);
   const isAr = locale === "ar";
 
   return (

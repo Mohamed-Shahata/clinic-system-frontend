@@ -4,8 +4,10 @@ import { getBackendBaseUrl } from "@/lib/backend-url";
 type NestLoginBody = {
   accessToken?: string;
   access_token?: string;
+  refreshToken?: string;
   user?: unknown;
-  data?: { accessToken?: string; access_token?: string; user?: unknown };
+  expiresIn?: number;
+  data?: { accessToken?: string; access_token?: string; refreshToken?: string; user?: unknown; expiresIn?: number };
 };
 
 function pickUser(data: NestLoginBody): unknown {
@@ -20,6 +22,17 @@ function pickAccessToken(data: NestLoginBody): string | null {
   if (typeof data?.data?.accessToken === "string") return data.data.accessToken;
   if (typeof data?.data?.access_token === "string") return data.data.access_token;
   return null;
+}
+
+function pickRefreshToken(data: NestLoginBody): string | null {
+  if (typeof data?.refreshToken === "string") return data.refreshToken;
+  if (typeof data?.data?.refreshToken === "string") return data.data.refreshToken;
+  return null;
+}
+
+function pickExpiresIn(data: NestLoginBody): number {
+  const value = data.expiresIn ?? data.data?.expiresIn;
+  return typeof value === "number" && Number.isFinite(value) ? value : 15 * 60;
 }
 
 export async function POST(request: NextRequest) {
@@ -51,9 +64,13 @@ export async function POST(request: NextRequest) {
   }
 
   const accessToken = pickAccessToken(data);
+  const refreshToken = pickRefreshToken(data);
 
   if (!accessToken) {
     return NextResponse.json({ message: "Invalid login response from server (missing accessToken)" }, { status: 502 });
+  }
+  if (!refreshToken) {
+    return NextResponse.json({ message: "Invalid login response from server (missing refreshToken)" }, { status: 502 });
   }
 
   const user = pickUser(data);
@@ -62,7 +79,7 @@ export async function POST(request: NextRequest) {
   }
 
   const secure = process.env.NODE_ENV === "production";
-  const maxAgeSeconds = 60 * 60 * 24;
+  const maxAgeSeconds = pickExpiresIn(data);
 
   const response = NextResponse.json({
     ok: true,
@@ -71,10 +88,17 @@ export async function POST(request: NextRequest) {
 
   response.cookies.set("access_token", accessToken, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     secure,
     path: "/",
     maxAge: maxAgeSeconds,
+  });
+  response.cookies.set("refresh_token", refreshToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure,
+    path: "/",
+    maxAge: 60 * 60 * 8,
   });
 
   return response;

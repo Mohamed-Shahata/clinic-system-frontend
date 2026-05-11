@@ -8,30 +8,40 @@ async function getToken() {
 }
 
 export async function GET(request: NextRequest) {
-  const token = await getToken();
-  if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  const url = new URL(`${getBackendBaseUrl()}/api/appointments`);
-  request.nextUrl.searchParams.forEach((value, key) => {
-    url.searchParams.set(key, value);
-  });
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const token = await getToken();
+    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const url = new URL(`${getBackendBaseUrl()}/api/appointments`);
+    request.nextUrl.searchParams.forEach((value, key) => {
+      url.searchParams.set(key, value);
+    });
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const token = await getToken();
-  if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  const body = await request.json();
-  const res = await fetch(`${getBackendBaseUrl()}/api/appointments`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const token = await getToken();
+    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const body = await request.json();
+    const res = await fetch(`${getBackendBaseUrl()}/api/appointments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }

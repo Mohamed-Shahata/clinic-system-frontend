@@ -8,26 +8,36 @@ async function token() {
 }
 
 export async function GET() {
-  const accessToken = await token();
-  if (!accessToken) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/template`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const accessToken = await token();
+    if (!accessToken) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/template`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const accessToken = await token();
-  if (!accessToken) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  const body = await request.json();
-  const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/template`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const accessToken = await token();
+    if (!accessToken) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const body = await request.json();
+    const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/template`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }

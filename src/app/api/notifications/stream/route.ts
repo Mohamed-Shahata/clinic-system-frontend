@@ -8,28 +8,33 @@ async function getToken() {
 }
 
 export async function GET() {
-  const token = await getToken();
-  if (!token)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  try {
+    const token = await getToken();
+    if (!token)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const res = await fetch(`${getBackendBaseUrl()}/api/notifications/stream`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  }).catch(() => null);
+    const res = await fetch(`${getBackendBaseUrl()}/api/notifications/stream`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }).catch(() => null);
 
-  if (!res?.body) {
-    return NextResponse.json(
-      { message: "Cannot reach notification stream" },
-      { status: 502 },
-    );
+    if (!res?.body) {
+      return NextResponse.json(
+        { message: "Cannot reach notification stream" },
+        { status: 502 },
+      );
+    }
+
+    return new Response(res.body, {
+      status: res.status,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
   }
-
-  return new Response(res.body, {
-    status: res.status,
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  });
 }

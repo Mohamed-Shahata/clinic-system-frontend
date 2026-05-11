@@ -4,12 +4,13 @@ export type SessionClaims = JWTPayload & {
   // FRONT-02: JWT_PAYLOAD uses `sub` (standard JWT claim) not `userId`.
   // The original type had `userId` which was always undefined; fixed to `sub`.
   sub: string;           // ← this is the userId (set by NestJS JwtService)
+  userId?: string;
   email?: string;
   isSuperAdmin?: boolean;
   clinicId?: string;
   clinicSlug?: string;
   clinicName?: string;
-  role?: "DOCTOR_ADMIN" | "RECEPTIONIST";
+  role?: "DOCTOR_ADMIN" | "DOCTOR" | "RECEPTIONIST";
 };
 
 export async function verifyAccessToken(token: string): Promise<SessionClaims> {
@@ -27,6 +28,7 @@ export async function verifyAccessToken(token: string): Promise<SessionClaims> {
 
   return {
     ...(payload as SessionClaims),
+    userId: typeof raw.sub === "string" ? raw.sub : "",
     isSuperAdmin,
   };
 }

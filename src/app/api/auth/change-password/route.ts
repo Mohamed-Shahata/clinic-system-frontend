@@ -8,22 +8,27 @@ async function getToken() {
 }
 
 export async function PATCH(request: NextRequest) {
-  const token = await getToken();
-  if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  try {
+    const token = await getToken();
+    if (!token) return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
 
-  const body = await request.json();
-  const res = await fetch(`${getBackendBaseUrl()}/api/auth/change-password`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(body),
-    cache: 'no-store',
-  }).catch(() => null);
+    const body = await request.json();
+    const res = await fetch(`${getBackendBaseUrl()}/api/auth/change-password`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+      cache: 'no-store',
+    }).catch(() => null);
 
-  if (!res) return NextResponse.json({ message: 'Cannot reach API server' }, { status: 502 });
+    if (!res) return NextResponse.json({ message: 'Cannot reach API server' }, { status: 502 });
 
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }

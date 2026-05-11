@@ -134,29 +134,68 @@ function statusBadge(status: string, isAr: boolean) {
   const map: Record<
     string,
     {
-      variant: "default" | "warning" | "success" | "danger" | "muted";
+      className: string;
+      dot: string;
       label: string;
       labelAr: string;
     }
   > = {
-    IN_QUEUE: { variant: "default", label: "Waiting", labelAr: "قيد الانتظار" },
+    BOOKED: {
+      className: "bg-blue-50 text-blue-700",
+      dot: "bg-blue-400",
+      label: "Booked",
+      labelAr: "محجوز",
+    },
+    CHECKED_IN: {
+      className: "bg-sky-50 text-sky-700",
+      dot: "bg-sky-400",
+      label: "Checked in",
+      labelAr: "تم الحضور",
+    },
+    IN_QUEUE: {
+      className: "bg-amber-50 text-amber-700",
+      dot: "bg-amber-400",
+      label: "Waiting",
+      labelAr: "قيد الانتظار",
+    },
     IN_PROGRESS: {
-      variant: "warning",
+      className: "bg-orange-50 text-orange-700",
+      dot: "bg-orange-400",
       label: "In Progress",
       labelAr: "قيد التنفيذ",
     },
-    COMPLETED: { variant: "success", label: "Completed", labelAr: "مكتمل" },
-    CANCELLED: { variant: "danger", label: "Cancelled", labelAr: "ملغي" },
-    BOOKED: { variant: "default", label: "Waiting", labelAr: "قيد الانتظار" },
-    CHECKED_IN: { variant: "default", label: "Waiting", labelAr: "قيد الانتظار" },
+    COMPLETED: {
+      className: "bg-green-50 text-green-700",
+      dot: "bg-green-400",
+      label: "Completed",
+      labelAr: "مكتمل",
+    },
+    CANCELLED: {
+      className: "bg-gray-100 text-gray-500",
+      dot: "bg-gray-400",
+      label: "Cancelled",
+      labelAr: "ملغي",
+    },
+    NO_SHOW: {
+      className: "bg-red-50 text-red-600",
+      dot: "bg-red-400",
+      label: "No show",
+      labelAr: "لم يحضر",
+    },
   };
   const entry = map[status] ?? {
-    variant: "default" as const,
+    className: "bg-surface-2 text-muted",
+    dot: "bg-muted",
     label: status,
     labelAr: status,
   };
   return (
-    <Badge variant={entry.variant}>{isAr ? entry.labelAr : entry.label}</Badge>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${entry.className}`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${entry.dot}`} />
+      {isAr ? entry.labelAr : entry.label}
+    </span>
   );
 }
 

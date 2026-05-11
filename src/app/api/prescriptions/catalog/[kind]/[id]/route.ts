@@ -12,29 +12,39 @@ function backendKind(kind: string) {
 }
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ kind: string; id: string }> }) {
-  const accessToken = await token();
-  if (!accessToken) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  const { kind, id } = await params;
-  const body = await request.json();
-  const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/catalog/${backendKind(kind)}/${id}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
-    body: JSON.stringify(body),
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const accessToken = await token();
+    if (!accessToken) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const { kind, id } = await params;
+    const body = await request.json();
+    const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/catalog/${backendKind(kind)}/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${accessToken}` },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: Promise<{ kind: string; id: string }> }) {
-  const accessToken = await token();
-  if (!accessToken) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  const { kind, id } = await params;
-  const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/catalog/${backendKind(kind)}/${id}`, {
-    method: "DELETE",
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+  try {
+    const accessToken = await token();
+    if (!accessToken) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    const { kind, id } = await params;
+    const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/catalog/${backendKind(kind)}/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${accessToken}` },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }

@@ -8,18 +8,28 @@ async function getToken() {
 }
 
 export async function GET() {
-  const token = await getToken();
-  if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  try {
+    const token = await getToken();
+    if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const res = await fetch(`${getBackendBaseUrl()}/api/users/doctors`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+    const res = await fetch(`${getBackendBaseUrl()}/api/users/doctors`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }
 
 // POST removed - doctor creation is no longer supported
 export async function POST() {
-  return NextResponse.json({ error: "Doctor creation is disabled. Only DOCTOR_ADMIN accounts are created by the Super Admin." }, { status: 405 });
+  try {
+    return NextResponse.json({ error: "Doctor creation is disabled. Only DOCTOR_ADMIN accounts are created by the Super Admin." }, { status: 405 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }

@@ -2,8 +2,8 @@ import { cookies } from "next/headers";
 import { verifyAccessToken, type SessionClaims } from "./verify-token";
 
 function coerceRole(value: unknown): SessionClaims["role"] | undefined {
-  if (value === "DOCTOR_ADMIN" || value === "RECEPTIONIST") {
-    return value; // ✅ حذف الـ duplicate DOCTOR_ADMIN check
+  if (value === "DOCTOR_ADMIN" || value === "DOCTOR" || value === "RECEPTIONIST") {
+    return value;
   }
   return undefined;
 }

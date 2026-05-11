@@ -52,10 +52,11 @@ export async function proxyToBackend(
   }
 
   const headers: Record<string, string> = {};
+  const jar = await cookies();
+  let token: string | undefined;
 
   if (!skipAuth) {
-    const jar = await cookies();
-    const token = jar.get("access_token")?.value;
+    token = jar.get("access_token")?.value;
     if (!token) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -87,8 +88,76 @@ export async function proxyToBackend(
   }
 
   const data = await upstream.json().catch(() => ({}));
+  if (upstream.status === 401 && !skipAuth) {
+    const refreshed = await refreshAccessToken(jar.get("refresh_token")?.value);
+    if (refreshed?.accessToken) {
+      const accessToken = refreshed.accessToken;
+      const refreshToken = refreshed.refreshToken;
+      if (!refreshToken) return NextResponse.json(data, { status: 401 });
+      headers["Authorization"] = `Bearer ${accessToken}`;
+      try {
+        upstream = await fetch(url.toString(), {
+          method,
+          headers,
+          ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+          cache: "no-store",
+        });
+      } catch {
+        return NextResponse.json(data, { status: 401 });
+      }
+      const retryData = await upstream.json().catch(() => ({}));
+      const retryResponse = NextResponse.json(retryData, {
+        status: statusOverride ?? upstream.status,
+      });
+      setAuthCookies(retryResponse, {
+        accessToken,
+        refreshToken,
+        expiresIn: refreshed.expiresIn,
+      });
+      return retryResponse;
+    }
+  }
+
   return NextResponse.json(data, {
     status: statusOverride ?? upstream.status,
+  });
+}
+
+async function refreshAccessToken(refreshToken?: string) {
+  if (!refreshToken) return null;
+  const backend = getBackendBaseUrl();
+  const response = await fetch(`${backend}/api/auth/refresh`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ refreshToken }),
+    cache: "no-store",
+  }).catch(() => null);
+  if (!response?.ok) return null;
+  const data = (await response.json().catch(() => null)) as
+    | { accessToken?: string; refreshToken?: string; expiresIn?: number }
+    | null;
+  if (!data?.accessToken || !data.refreshToken) return null;
+  return data;
+}
+
+function setAuthCookies(
+  response: NextResponse,
+  tokens: { accessToken: string; refreshToken: string; expiresIn?: number },
+) {
+  const secure = process.env.NODE_ENV === "production";
+  response.cookies.set("access_token", tokens.accessToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure,
+    path: "/",
+    maxAge: tokens.expiresIn ?? 15 * 60,
+  });
+  response.cookies.set("refresh_token", tokens.refreshToken, {
+    httpOnly: true,
+    sameSite: "strict",
+    secure,
+    path: "/",
+    maxAge: 60 * 60 * 8,
   });
 }
 

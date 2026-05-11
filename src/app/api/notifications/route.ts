@@ -8,35 +8,45 @@ async function getToken() {
 }
 
 export async function GET() {
-  const token = await getToken();
-  if (!token)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  try {
+    const token = await getToken();
+    if (!token)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const res = await fetch(`${getBackendBaseUrl()}/api/notifications`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  const data = await res.json().catch(() => []);
-  return NextResponse.json(data, { status: res.status });
+    const res = await fetch(`${getBackendBaseUrl()}/api/notifications`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    const data = await res.json().catch(() => []);
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }
 
 export async function PATCH(request: NextRequest) {
-  const token = await getToken();
-  if (!token)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  try {
+    const token = await getToken();
+    if (!token)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const url = new URL(request.url);
-  const id = url.searchParams.get("id");
-  if (!id) return NextResponse.json({ message: "Missing id" }, { status: 400 });
+    const url = new URL(request.url);
+    const id = url.searchParams.get("id");
+    if (!id) return NextResponse.json({ message: "Missing id" }, { status: 400 });
 
-  const res = await fetch(
-    `${getBackendBaseUrl()}/api/notifications/${id}/read`,
-    {
-      method: "PATCH",
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    },
-  );
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+    const res = await fetch(
+      `${getBackendBaseUrl()}/api/notifications/${id}/read`,
+      {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
+      },
+    );
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Internal error';
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }
