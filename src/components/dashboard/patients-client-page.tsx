@@ -39,23 +39,19 @@ export function PatientsClientPage({
   const [page, setPage] = useState(1);
 
   const statusLabels: Record<string, string> = {
-    BOOKED: isAr ? "قيد الانتظار" : "Waiting",
+    IN_QUEUE: isAr ? "قيد الانتظار" : "Waiting",
     IN_PROGRESS: isAr ? "قيد التنفيذ" : "In progress",
     COMPLETED: isAr ? "مكتمل" : "Completed",
     CANCELLED: isAr ? "ملغي" : "Cancelled",
-    CHECKED_IN: isAr ? "تم الوصول" : "Checked in",
-    IN_QUEUE: isAr ? "قيد الانتظار" : "Waiting",
-    NO_SHOW: isAr ? "لم يحضر" : "No show",
   };
 
   const statusVariant = (
     status: string,
   ): "default" | "success" | "warning" | "danger" | "muted" => {
     if (status === "COMPLETED") return "success";
-    if (["IN_PROGRESS", "IN_QUEUE", "CHECKED_IN"].includes(status))
-      return "warning";
-    if (["CANCELLED", "NO_SHOW"].includes(status)) return "danger";
-    if (status === "BOOKED") return "default";
+    if (status === "IN_PROGRESS") return "warning";
+    if (status === "IN_QUEUE") return "default";
+    if (status === "CANCELLED") return "danger";
     return "muted";
   };
 

@@ -13,14 +13,10 @@ export function formatPercent(value: number, locale: string) {
 export function appointmentStatusLabel(status: string, locale: string) {
   const isAr = locale === "ar";
   const labels: Record<string, [string, string]> = {
-    BOOKED: ["قيد الانتظار", "Waiting"],
     IN_QUEUE: ["قيد الانتظار", "Waiting"],
     IN_PROGRESS: ["قيد التنفيذ", "In progress"],
     COMPLETED: ["مكتمل", "Completed"],
     CANCELLED: ["ملغي", "Cancelled"],
-    NO_SHOW: ["ملغي", "Cancelled"],
-    SCHEDULED: ["قيد الانتظار", "Waiting"],
-    PENDING: ["قيد الانتظار", "Waiting"],
   };
   return (labels[status] ?? [status, status])[isAr ? 0 : 1];
 }

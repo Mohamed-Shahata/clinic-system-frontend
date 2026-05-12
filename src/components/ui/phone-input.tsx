@@ -46,6 +46,7 @@ interface PhoneInputProps {
   id?: string;
   className?: string;
   label?: string;
+  locale?: "ar" | "en" | string;
 }
 
 export function PhoneInput({
@@ -56,6 +57,7 @@ export function PhoneInput({
   id,
   className = "",
   label,
+  locale = "en",
 }: PhoneInputProps) {
   // Parse existing value into countryCode + local
   function parseValue(val: string) {
@@ -89,6 +91,12 @@ export function PhoneInput({
     return () => document.removeEventListener("mousedown", handler);
   }, [dropOpen]);
 
+  useEffect(() => {
+    const next = parseValue(value);
+    setSelectedCountry(next.country);
+    setLocalNumber(next.local);
+  }, [value]);
+
   function handleLocalChange(raw: string) {
     // Strip leading zeros and any country code prefix the user typed
     const digits = raw.replace(/[^\d]/g, "");
@@ -108,6 +116,7 @@ export function PhoneInput({
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.code.includes(search),
   );
+  const isAr = locale === "ar";
 
   return (
     <div className={className}>
@@ -155,7 +164,7 @@ export function PhoneInput({
                 <input
                   type="text"
                   autoFocus
-                  placeholder="Search country..."
+                  placeholder={isAr ? "ابحث عن الدولة..." : "Search country..."}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs outline-none"
@@ -183,7 +192,7 @@ export function PhoneInput({
                 ))}
                 {filtered.length === 0 && (
                   <li className="px-3 py-3 text-xs text-muted text-center">
-                    No results
+                    {isAr ? "لا توجد نتائج" : "No results"}
                   </li>
                 )}
               </ul>

@@ -23,12 +23,16 @@ type Clinic = {
   } | null;
 };
 
-export function ExtendSubscriptionForm() {
+export function ExtendSubscriptionForm({
+  initialClinics = [],
+}: {
+  initialClinics?: Clinic[];
+}) {
   const locale = useLocale();
   const isAr = locale === "ar";
 
-  const [clinics, setClinics] = useState<Clinic[]>([]);
-  const [clinicsLoading, setClinicsLoading] = useState(true);
+  const [clinics, setClinics] = useState<Clinic[]>(initialClinics);
+  const [clinicsLoading, setClinicsLoading] = useState(false);
 
   const [mode, setMode] = useState<"all" | "specific">("specific");
   const [selectedClinicId, setSelectedClinicId] = useState("");
@@ -41,13 +45,14 @@ export function ExtendSubscriptionForm() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (initialClinics.length > 0) return;
     setClinicsLoading(true);
     void fetch("/api/clinics")
       .then((r) => r.json())
       .then((data) => setClinics(Array.isArray(data) ? data : []))
       .catch(() => setClinics([]))
       .finally(() => setClinicsLoading(false));
-  }, []);
+  }, [initialClinics.length]);
 
   const filteredClinics = clinics.filter(
     (c) =>

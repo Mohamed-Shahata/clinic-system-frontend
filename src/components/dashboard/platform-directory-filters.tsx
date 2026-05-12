@@ -269,7 +269,7 @@ export function PlatformDirectoryFilters({ clinics }: { clinics: Clinic[] }) {
           </div>
         ) : (
           <div className="overflow-x-auto rounded border border-card-border">
-            <table className="w-full text-sm">
+            <table className="min-w-[700px] w-full text-sm">
               <thead>
                 <tr className="border-b border-card-border bg-surface-2">
                   <th className="px-3 py-2 text-start text-xs font-medium text-muted">

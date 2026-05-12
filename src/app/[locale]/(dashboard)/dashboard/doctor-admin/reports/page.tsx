@@ -53,9 +53,7 @@ export default async function ReportsPage({
     0,
   );
   const completed = appointments.filter((a) => a.status === "COMPLETED").length;
-  const pending = appointments.filter((a) =>
-    ["BOOKED", "IN_QUEUE", "PENDING"].includes(a.status),
-  ).length;
+  const pending = appointments.filter((a) => a.status === "IN_QUEUE").length;
 
   // Monthly revenue breakdown
   const monthlyMap = invoices.reduce<Record<string, number>>((acc, inv) => {

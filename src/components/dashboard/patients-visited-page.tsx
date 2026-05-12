@@ -39,7 +39,7 @@ export function PatientsVisitedPage({
   const [page, setPage] = useState(1);
 
   const statusLabels: Record<string, string> = {
-    BOOKED: t("statusBooked"),
+    IN_QUEUE: t("statusBooked"),
     IN_PROGRESS: t("statusInProgress"),
     COMPLETED: t("statusCompleted"),
     CANCELLED: t("statusCancelled"),
@@ -51,7 +51,7 @@ export function PatientsVisitedPage({
     if (s === "COMPLETED") return "success";
     if (s === "IN_PROGRESS") return "warning";
     if (s === "CANCELLED") return "danger";
-    if (s === "BOOKED") return "default";
+    if (s === "IN_QUEUE") return "default";
     return "muted";
   };
 

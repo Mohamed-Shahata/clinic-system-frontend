@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { getBackendBaseUrl } from "@/lib/backend-url";
+import { proxyToBackend } from "@/lib/api-proxy";
 
 export async function PATCH(
   request: NextRequest,
@@ -11,7 +12,7 @@ export async function PATCH(
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { planId } = await params;
   const body = await request.json();
-  const res = await fetch(
+  const res = await proxyToBackend(
     `${getBackendBaseUrl()}/api/billing/subscription-plans/manage/${planId}`,
     {
       method: "PATCH",
@@ -31,7 +32,7 @@ export async function DELETE(
   const token = jar.get("access_token")?.value;
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { planId } = await params;
-  const res = await fetch(
+  const res = await proxyToBackend(
     `${getBackendBaseUrl()}/api/billing/subscription-plans/manage/${planId}`,
     {
       method: "DELETE",

@@ -113,7 +113,9 @@ export function DashboardShell({
 
           {/* Right side: notification bell */}
           <div className="flex items-center gap-2">
-            <NotificationBell locale={locale} />
+            {claims?.role !== "RECEPTIONIST" && (
+              <NotificationBell locale={locale} />
+            )}
           </div>
         </header>
 

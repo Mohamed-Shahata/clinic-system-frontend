@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { getBackendBaseUrl } from "@/lib/backend-url";
+import { proxyToBackend } from "@/lib/api-proxy";
 
 export async function PATCH(
   request: NextRequest,
@@ -11,7 +12,7 @@ export async function PATCH(
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { appointmentId } = await params;
   const body = await request.json();
-  const res = await fetch(`${getBackendBaseUrl()}/api/appointments/${appointmentId}/status`, {
+  const res = await proxyToBackend(`${getBackendBaseUrl()}/api/appointments/${appointmentId}/status`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),

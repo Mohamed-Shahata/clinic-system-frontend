@@ -11,7 +11,7 @@
     "title": "Welcome back",
     "subtitle": "Sign in to your clinic account",
     "loginLabel": "Email or phone",
-    "loginPlaceholder": "you@clinic.com or 0123456789",
+    "loginPlaceholder": "Email address",
     "passwordLabel": "Password",
     "clinicSlugLabel": "Clinic code",
     "clinicSlugPlaceholder": "your-clinic-slug",

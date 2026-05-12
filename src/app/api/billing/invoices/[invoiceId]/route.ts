@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { getBackendBaseUrl } from "@/lib/backend-url";
+import { proxyToBackend } from "@/lib/api-proxy";
 
 async function getToken() {
   const jar = await cookies();
@@ -17,7 +18,7 @@ export async function PATCH(
 
   const { invoiceId } = await params;
   const body = await request.json().catch(() => ({}));
-  const res = await fetch(
+  const res = await proxyToBackend(
     `${getBackendBaseUrl()}/api/billing/invoices/${invoiceId}`,
     {
       method: "PATCH",
@@ -42,7 +43,7 @@ export async function DELETE(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const { invoiceId } = await params;
-  const res = await fetch(
+  const res = await proxyToBackend(
     `${getBackendBaseUrl()}/api/billing/invoices/${invoiceId}`,
     {
       method: "DELETE",

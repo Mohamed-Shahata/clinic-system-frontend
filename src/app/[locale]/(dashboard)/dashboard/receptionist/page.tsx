@@ -72,7 +72,9 @@ export default async function ReceptionistPage({
     (a) => dateInputValue(new Date(a.startsAt)) === todayStr,
   );
 
-  const waiting = todayAppointments.filter((a) => a.status === "BOOKED").length;
+  const waiting = todayAppointments.filter(
+    (a) => a.status === "IN_QUEUE",
+  ).length;
   const inProgress = todayAppointments.filter(
     (a) => a.status === "IN_PROGRESS",
   ).length;
@@ -87,7 +89,7 @@ export default async function ReceptionistPage({
   });
 
   const nextAppointments = todayAppointments
-    .filter((a) => a.status === "BOOKED")
+    .filter((a) => a.status === "IN_QUEUE")
     .slice(0, 5);
 
   return (

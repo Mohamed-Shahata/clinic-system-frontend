@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import { getBackendBaseUrl } from "@/lib/backend-url";
+import { proxyToBackend } from "@/lib/api-proxy";
 
 async function getToken() {
   const jar = await cookies();
@@ -16,7 +17,7 @@ export async function PATCH(
 
   const { requestId } = await params;
   const body = await request.json();
-  const res = await fetch(
+  const res = await proxyToBackend(
     `${getBackendBaseUrl()}/api/billing/subscription-requests/${requestId}/review`,
     {
       method: "PATCH",

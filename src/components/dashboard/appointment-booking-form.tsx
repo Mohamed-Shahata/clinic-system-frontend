@@ -57,7 +57,7 @@ export function AppointmentBookingForm({
   const bookedTimes = useMemo(() => {
     const times = new Set<string>();
     appointments.forEach((apt) => {
-      if (["CANCELLED", "NO_SHOW"].includes(apt.status)) return;
+      if (apt.status === "CANCELLED") return;
       if (apt.doctor.id !== doctorId) return;
       const start = new Date(apt.startsAt);
       const pad = (n: number) => n.toString().padStart(2, "0");

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getBackendBaseUrl } from "@/lib/backend-url";
+import { proxyToBackend } from "@/lib/api-proxy";
 
 export async function GET(
   _request: Request,
@@ -10,7 +11,7 @@ export async function GET(
   const token = jar.get("access_token")?.value;
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   const { patientId } = await params;
-  const res = await fetch(`${getBackendBaseUrl()}/api/prescriptions/patient/${patientId}`, {
+  const res = await proxyToBackend(`${getBackendBaseUrl()}/api/prescriptions/patient/${patientId}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });

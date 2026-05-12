@@ -13,11 +13,11 @@ export default function LoginPage() {
   const isAr = locale === "ar";
   const dir = isAr ? "rtl" : "ltr";
 
-  const [isPhoneMode, setIsPhoneMode] = useState(false);
-  const [email, setEmail] = useState("");
+  const [login, setLogin] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const isPhoneMode = /^[+\d]/.test(login.trim()) && !login.includes("@");
 
   function normalizeLogin(value: string) {
     const trimmed = value.trim();
@@ -31,6 +31,43 @@ export default function LoginPage() {
     return trimmed.toLowerCase();
   }
 
+  function translateLoginError(message: unknown) {
+    const text = typeof message === "string" ? message : "";
+    const fallback = isAr ? "بيانات الدخول غير صحيحة" : "Invalid credentials";
+
+    const dictionary: Record<string, { ar: string; en: string }> = {
+      "Invalid credentials": {
+        ar: "بيانات الدخول غير صحيحة",
+        en: "Invalid credentials",
+      },
+      "No active membership for this clinic": {
+        ar: "لا توجد عضوية نشطة لهذا الحساب في هذه العيادة",
+        en: "No active membership for this clinic",
+      },
+      "No clinic membership for this account": {
+        ar: "هذا الحساب غير مرتبط بأي عيادة نشطة",
+        en: "No clinic membership for this account",
+      },
+      "This account is linked to multiple clinics. Ask your administrator for your clinic code (clinicSlug).": {
+        ar: "هذا الحساب مرتبط بأكثر من عيادة. اطلب رمز العيادة من المسؤول.",
+        en: "This account is linked to multiple clinics. Ask your administrator for your clinic code.",
+      },
+    };
+
+    if (dictionary[text]) return dictionary[text][isAr ? "ar" : "en"];
+    if (text.startsWith("Cannot reach API")) {
+      return isAr
+        ? "لا يمكن الاتصال بالخادم. تأكد أن خدمة API تعمل."
+        : "Cannot reach the API. Make sure the server is running.";
+    }
+    if (text.startsWith("Invalid login response")) {
+      return isAr
+        ? "استجابة تسجيل الدخول من الخادم غير صحيحة."
+        : "Invalid login response from server.";
+    }
+    return text || fallback;
+  }
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -39,7 +76,7 @@ export default function LoginPage() {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ login: normalizeLogin(email), password }),
+        body: JSON.stringify({ login: normalizeLogin(login), password }),
       });
 
       const data = (await res.json().catch(() => ({}))) as Record<
@@ -49,11 +86,7 @@ export default function LoginPage() {
 
       if (!res.ok) {
         setError(
-          typeof data.message === "string"
-            ? data.message
-            : isAr
-              ? "بيانات الدخول غير صحيحة"
-              : "Invalid credentials",
+          translateLoginError(data.message),
         );
         return;
       }
@@ -223,46 +256,28 @@ export default function LoginPage() {
             >
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between mb-1.5">
-                  <label
-                    className="block text-sm font-medium text-foreground"
-                    htmlFor="email"
-                  >
+                  <label className="block text-sm font-medium text-foreground" htmlFor="login">
                     {t("loginLabel")}
                   </label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsPhoneMode((v) => !v);
-                      setEmail("");
-                    }}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    {isPhoneMode
-                      ? isAr
-                        ? "تسجيل بالإيميل"
-                        : "Use email"
-                      : isAr
-                        ? "تسجيل برقم الهاتف"
-                        : "Use phone"}
-                  </button>
                 </div>
                 {isPhoneMode ? (
                   <PhoneInput
-                    id="email"
-                    value={email}
-                    onChange={setEmail}
-                    placeholder={isAr ? "1234567890" : "1234567890"}
+                    id="login"
+                    value={login}
+                    onChange={setLogin}
+                    placeholder={isAr ? "رقم الهاتف" : "Phone number"}
+                    locale={locale}
                     required
                   />
                 ) : (
                   <input
-                    id="email"
+                    id="login"
                     type="text"
                     required
                     autoComplete="username"
                     placeholder={t("loginPlaceholder")}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    value={login}
+                    onChange={(e) => setLogin(e.target.value)}
                     className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted outline-none ring-primary/30 focus:ring-2 transition-shadow"
                     dir="ltr"
                   />

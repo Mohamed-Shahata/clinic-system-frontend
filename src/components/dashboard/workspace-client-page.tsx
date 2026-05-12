@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/components/ui/toast";
 import {
   Alert,
@@ -44,6 +44,12 @@ type CatalogMedication = {
 type Template = {
   header?: { clinicName?: string; logoUrl?: string | null; address?: string };
   footer?: { phone?: string; workingHours?: string; notes?: string };
+};
+
+type UploadPreview = {
+  file: File;
+  url: string | null;
+  error?: string;
 };
 
 const emptyMedication = (): MedicationRow => ({
@@ -140,18 +146,6 @@ function statusBadge(status: string, isAr: boolean) {
       labelAr: string;
     }
   > = {
-    BOOKED: {
-      className: "bg-blue-50 text-blue-700",
-      dot: "bg-blue-400",
-      label: "Booked",
-      labelAr: "محجوز",
-    },
-    CHECKED_IN: {
-      className: "bg-sky-50 text-sky-700",
-      dot: "bg-sky-400",
-      label: "Checked in",
-      labelAr: "تم الحضور",
-    },
     IN_QUEUE: {
       className: "bg-amber-50 text-amber-700",
       dot: "bg-amber-400",
@@ -175,12 +169,6 @@ function statusBadge(status: string, isAr: boolean) {
       dot: "bg-gray-400",
       label: "Cancelled",
       labelAr: "ملغي",
-    },
-    NO_SHOW: {
-      className: "bg-red-50 text-red-600",
-      dot: "bg-red-400",
-      label: "No show",
-      labelAr: "لم يحضر",
     },
   };
   const entry = map[status] ?? {
@@ -226,7 +214,8 @@ export function WorkspaceClientPage({
   const [loadingStart, setLoadingStart] = useState<string | null>(null);
   const [loadingEnd, setLoadingEnd] = useState(false);
   const [savingSystem, setSavingSystem] = useState(false);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<UploadPreview[]>([]);
+  const uploadFilesRef = useRef<UploadPreview[]>([]);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -277,7 +266,14 @@ export function WorkspaceClientPage({
     endVisit: isAr ? "إنهاء الكشف" : "End Visit",
     savedOk: isAr ? "تم الحفظ بنجاح." : "Saved successfully.",
     optionalFile: isAr ? "ملف اختياري" : "Optional file",
-    optionalFileHint: isAr ? "ارفع صورة أو PDF لحفظها في ملف المريض." : "Upload an image or PDF to store with the patient.",
+    optionalFileHint: isAr
+      ? "ارفع صور أو PDF لحفظها في ملف المريض."
+      : "Upload images or PDFs to store with the patient.",
+    chooseFiles: isAr ? "اختيار ملفات" : "Choose files",
+    removeFile: isAr ? "حذف الملف" : "Remove file",
+    invalidFile: isAr
+      ? "مسموح بالصور أو PDF فقط، وبحد أقصى 10MB لكل ملف."
+      : "Only images or PDFs are allowed, up to 10MB per file.",
     age: isAr ? "العمر" : "Age",
     years: isAr ? "سنة" : "yrs",
     code: isAr ? "الكود" : "Code",
@@ -287,6 +283,60 @@ export function WorkspaceClientPage({
     refreshQueue: isAr ? "تحديث القائمة" : "Refresh Queue",
     queueOrder: isAr ? "الترتيب" : "#",
   };
+
+  const hasValidUploadFiles = useMemo(
+    () => uploadFiles.some((item) => !item.error),
+    [uploadFiles],
+  );
+
+  useEffect(() => {
+    uploadFilesRef.current = uploadFiles;
+  }, [uploadFiles]);
+
+  useEffect(() => {
+    return () => {
+      uploadFilesRef.current.forEach((item) => {
+        if (item.url) URL.revokeObjectURL(item.url);
+      });
+    };
+  }, []);
+
+  function validateUploadFile(file: File) {
+    const allowed = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "application/pdf",
+    ];
+    return allowed.includes(file.type) && file.size <= 10 * 1024 * 1024;
+  }
+
+  function handleUploadFiles(files: FileList | null) {
+    if (!files) return;
+    setUploadFiles((prev) => {
+      const next = [...prev];
+      for (const file of Array.from(files)) {
+        const valid = validateUploadFile(file);
+        next.push({
+          file,
+          url: file.type.startsWith("image/")
+            ? URL.createObjectURL(file)
+            : null,
+          error: valid ? undefined : L.invalidFile,
+        });
+      }
+      return next;
+    });
+  }
+
+  function removeUploadFile(index: number) {
+    setUploadFiles((prev) => {
+      const item = prev[index];
+      if (item?.url) URL.revokeObjectURL(item.url);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
 
   /* ── Reset form when switching patient ── */
   function resetForm() {
@@ -320,12 +370,29 @@ export function WorkspaceClientPage({
 
   // Auto-refresh every 30s — FRONT-03: pause when tab is not visible to save bandwidth
   useEffect(() => {
-    const id = setInterval(() => {
+    let cancelled = false;
+    let failCount = 0;
+    let timer: ReturnType<typeof setTimeout>;
+
+    async function tick() {
       if (document.visibilityState === "visible") {
-        void refreshQueue();
+        try {
+          await refreshQueue();
+          failCount = 0;
+        } catch {
+          failCount = Math.min(failCount + 1, 4);
+        }
       }
-    }, 30_000);
-    return () => clearInterval(id);
+      if (!cancelled) {
+        timer = setTimeout(tick, 30_000 * Math.pow(2, failCount));
+      }
+    }
+
+    timer = setTimeout(tick, 30_000);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [refreshQueue]);
 
   /* ── Start visit (IN_QUEUE → IN_PROGRESS) ── */
@@ -390,19 +457,30 @@ export function WorkspaceClientPage({
       const saved = (await res.json()) as { id?: string };
       setSavedAt(new Date().toISOString());
       if (saved?.id) setLastSavedPrescriptionId(saved.id);
-      if (uploadFile) {
+      if (hasValidUploadFiles) {
         setUploadingFile(true);
-        const formData = new FormData();
-        formData.append("file", uploadFile);
-        const uploadRes = await fetch(
-          `/api/patients/${activeItem.patient.id}?appointmentId=${activeItem.id}`,
-          { method: "POST", body: formData },
-        );
-        if (!uploadRes.ok) {
-          addToast("error", isAr ? "تم حفظ الكشف لكن تعذر رفع الملف" : "Encounter saved, but file upload failed");
-        } else {
-          setUploadFile(null);
+        for (const item of uploadFiles.filter((entry) => !entry.error)) {
+          const formData = new FormData();
+          formData.append("file", item.file);
+          const uploadRes = await fetch(
+            `/api/patients/${activeItem.patient.id}?appointmentId=${activeItem.id}`,
+            { method: "POST", body: formData },
+          );
+          if (!uploadRes.ok) {
+            addToast(
+              "error",
+              isAr
+                ? "تم حفظ الكشف لكن تعذر رفع بعض الملفات"
+                : "Encounter saved, but some files failed to upload",
+            );
+          }
         }
+        setUploadFiles((prev) => {
+          prev.forEach((item) => {
+            if (item.url) URL.revokeObjectURL(item.url);
+          });
+          return [];
+        });
       }
       addToast("success", L.savedOk);
     } catch {
@@ -425,7 +503,9 @@ export function WorkspaceClientPage({
     }
     const meds = rows
       .filter((row) => row.name.trim())
-      .map((row) => [row.name, row.dose, row.frequency].filter(Boolean).join(" - "));
+      .map((row) =>
+        [row.name, row.dose, row.frequency].filter(Boolean).join(" - "),
+      );
     const html = `<!doctype html><html lang="${locale}" dir="${isAr ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>${activeItem.patient.fullName}</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.7;color:#111}.head{border-bottom:2px solid #2563eb;padding-bottom:12px;margin-bottom:20px}.muted{color:#666;font-size:12px}.section{margin-top:18px}.label{font-weight:700;color:#2563eb}li{margin-bottom:4px}</style></head><body><div class="head"><h2>${template?.header?.clinicName ?? ""}</h2><div>${doctorInfo.fullName}</div><div class="muted">${new Date().toLocaleDateString(isAr ? "ar-EG" : "en-GB")}</div></div><h3>${activeItem.patient.fullName}</h3>${diagnosis ? `<div class="section"><span class="label">${L.diagnosis}: </span>${diagnosis}</div>` : ""}${meds.length ? `<div class="section"><div class="label">${L.medications}</div><ul>${meds.map((m) => `<li>${m}</li>`).join("")}</ul></div>` : ""}${requestedTests.filter(Boolean).length ? `<div class="section"><div class="label">${L.tests}</div>${requestedTests.filter(Boolean).join("، ")}</div>` : ""}${requestedImaging.filter(Boolean).length ? `<div class="section"><div class="label">${L.imaging}</div>${requestedImaging.filter(Boolean).join("، ")}</div>` : ""}${notes ? `<div class="section"><span class="label">${L.notesLabel}: </span>${notes}</div>` : ""}</body></html>`;
     const win = window.open("", "_blank");
     if (!win) return;
@@ -511,9 +591,28 @@ export function WorkspaceClientPage({
         </Button>
       </div>
 
+      {waitingQueue.length > 0 && (
+        <div className="lg:hidden overflow-x-auto pb-1">
+          <div className="flex w-max gap-2">
+            {waitingQueue.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => {
+                  if (!inProgressItem) void startVisit(item);
+                }}
+                className="shrink-0 rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-foreground whitespace-nowrap"
+              >
+                {item.patient.fullName}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[340px_1fr]">
         {/* ── LEFT: Queue Panel ── */}
-        <div className="flex flex-col gap-4">
+        <div className="hidden lg:flex flex-col gap-4">
           {/* Active patient card */}
           {inProgressItem && (
             <Card className="border-warning/40 bg-warning/5">
@@ -880,16 +979,73 @@ export function WorkspaceClientPage({
                   {saveError && <Alert variant="error">{saveError}</Alert>}
                   {savedAt && <Alert variant="success">{L.savedOk}</Alert>}
                   <div className="rounded-lg border border-dashed border-card-border bg-surface px-3 py-3">
-                    <p className="text-sm font-semibold text-foreground">
-                      {L.optionalFile}
-                    </p>
-                    <p className="mt-1 text-xs text-muted">{L.optionalFileHint}</p>
-                    <input
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
-                      className="mt-3 block w-full text-sm text-muted file:me-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-sm file:font-medium file:text-white"
-                    />
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">
+                          {L.optionalFile}
+                        </p>
+                        <p className="mt-1 text-xs text-muted">
+                          {L.optionalFileHint}
+                        </p>
+                      </div>
+                      {/* FIX-1 & FIX-2: استخدام label مخصص بدل input native
+                          عشان:
+                          1- نص "Choose Files / No file chosen" مش قابل للترجمة (browser native)
+                          2- نحتفظ بـ files في متغير قبل تكلير الـ input (race condition fix) */}
+                      <label className="mt-1 shrink-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors">
+                        {isAr ? "اختيار ملفات" : "Choose Files"}
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*,application/pdf"
+                          className="hidden"
+                          onChange={(event) => {
+                            const files = event.target.files; // ← احتفظ قبل التكلير
+                            handleUploadFiles(files);
+                            event.currentTarget.value = "";
+                          }}
+                        />
+                      </label>
+                    </div>
+                    {uploadFiles.length > 0 && (
+                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                        {uploadFiles.map((item, index) => (
+                          <div
+                            key={`${item.file.name}-${index}`}
+                            className="relative rounded border border-border bg-card p-2"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => removeUploadFile(index)}
+                              className="absolute end-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white"
+                              aria-label={L.removeFile}
+                              title={L.removeFile}
+                            >
+                              ×
+                            </button>
+                            {item.url ? (
+                              <img
+                                src={item.url}
+                                alt={item.file.name}
+                                className="h-20 w-full rounded object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-20 items-center justify-center rounded bg-surface-2 text-xs font-semibold text-muted">
+                                PDF
+                              </div>
+                            )}
+                            <p className="mt-1 truncate text-xs text-foreground">
+                              {item.file.name}
+                            </p>
+                            {item.error && (
+                              <p className="mt-1 text-[10px] leading-snug text-danger">
+                                {item.error}
+                              </p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   {/* Action buttons */}
@@ -906,9 +1062,7 @@ export function WorkspaceClientPage({
                       variant="secondary"
                       onClick={printPrescription}
                       disabled={
-                        !lastSavedPrescriptionId ||
-                        savingSystem ||
-                        loadingEnd
+                        !lastSavedPrescriptionId || savingSystem || loadingEnd
                       }
                     >
                       🖨 {L.printRx}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getBackendBaseUrl } from "@/lib/backend-url";
+import { proxyToBackend } from "@/lib/api-proxy";
 
 async function getToken() {
   const jar = await cookies();
@@ -15,7 +16,7 @@ export async function GET(
   if (!token) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const { patientId } = await params;
-  const res = await fetch(`${getBackendBaseUrl()}/api/patients/${patientId}`, {
+  const res = await proxyToBackend(`${getBackendBaseUrl()}/api/patients/${patientId}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
@@ -36,7 +37,7 @@ export async function POST(
   const appointmentId = new URL(request.url).searchParams.get("appointmentId");
   const url = new URL(`${getBackendBaseUrl()}/api/patients/${patientId}/attachments`);
   if (appointmentId) url.searchParams.set("appointmentId", appointmentId);
-  const res = await fetch(
+  const res = await proxyToBackend(
     url,
     {
       method: "POST",

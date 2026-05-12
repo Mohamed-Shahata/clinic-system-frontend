@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import type { SessionClaims } from "@/lib/auth/verify-token";
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/dashboard/logout-button";
 import { BiPhone } from "react-icons/bi";
@@ -171,7 +171,13 @@ export function SidebarNav({
   const activePath = optimisticPath ?? pathname ?? currentPath;
   const t = useTranslations("dashboard.nav");
   const isAr = locale === "ar";
-  const items = getNavItems(locale, claims, t);
+  const items = useMemo(() => getNavItems(locale, claims, t), [locale, claims, t]);
+
+  useEffect(() => {
+    items.forEach((item) => {
+      router.prefetch(item.href);
+    });
+  }, [items, router]);
 
   // Reset optimistic path once real pathname catches up
   if (optimisticPath && pathname === optimisticPath) {
@@ -334,6 +340,8 @@ export function SidebarNav({
               key={item.href}
               type="button"
               onClick={() => handleNav(item.href)}
+              onFocus={() => router.prefetch(item.href)}
+              onMouseEnter={() => router.prefetch(item.href)}
               title={collapsed ? item.label : undefined}
               className={[
                 "flex w-full items-center gap-3 rounded text-sm transition-colors",
@@ -363,6 +371,8 @@ export function SidebarNav({
                     key={item.href}
                     type="button"
                     onClick={() => handleNav(item.href)}
+                    onFocus={() => router.prefetch(item.href)}
+                    onMouseEnter={() => router.prefetch(item.href)}
                     title={item.label}
                     className={[
                       "flex w-full items-center justify-center rounded py-2.5 text-sm transition-colors mb-0.5",
@@ -401,6 +411,8 @@ export function SidebarNav({
                           key={item.href}
                           type="button"
                           onClick={() => handleNav(item.href)}
+                          onFocus={() => router.prefetch(item.href)}
+                          onMouseEnter={() => router.prefetch(item.href)}
                           className={[
                             "flex w-full items-center gap-3 rounded px-3 py-2 text-sm transition-colors",
                             isActive

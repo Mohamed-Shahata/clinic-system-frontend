@@ -11,7 +11,7 @@
     "title": "أهلاً بعودتك",
     "subtitle": "سجّل دخولك إلى حساب عيادتك",
     "loginLabel": "البريد الإلكتروني أو رقم الهاتف",
-    "loginPlaceholder": "you@clinic.com أو 0123456789",
+    "loginPlaceholder": "البريد الإلكتروني",
     "passwordLabel": "كلمة المرور",
     "clinicSlugLabel": "رمز العيادة",
     "clinicSlugPlaceholder": "your-clinic-slug",

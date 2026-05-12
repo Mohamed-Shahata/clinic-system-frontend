@@ -64,9 +64,6 @@ function statusVariant(status: string) {
   const map: Record<string, "success" | "danger" | "warning" | "muted"> = {
     COMPLETED: "success",
     CANCELLED: "danger",
-    NO_SHOW: "warning",
-    SCHEDULED: "muted",
-    BOOKED: "warning",
     IN_QUEUE: "warning",
     IN_PROGRESS: "success",
   };
@@ -674,13 +671,13 @@ ${medsHTML}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-border">
+      <div className="flex gap-1 overflow-x-auto border-b border-border">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setActiveTab(t.key)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
               activeTab === t.key
                 ? "border-primary text-primary"
                 : "border-transparent text-muted hover:text-foreground"
