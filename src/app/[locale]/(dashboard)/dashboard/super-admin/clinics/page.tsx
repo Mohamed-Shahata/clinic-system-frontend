@@ -2,7 +2,6 @@ import { getSessionFromCookies } from "@/lib/auth/get-session-from-cookies";
 import { getBackendBaseUrl } from "@/lib/backend-url";
 import { Card, CardBody, CardHeader, Badge } from "@/components/ui";
 import { ClinicStatusToggle } from "@/components/dashboard/clinic-status-toggle";
-import { ClinicDeleteButton } from "@/components/dashboard/clinic-delete-button";
 import { CreateClinicButton } from "@/components/dashboard/create-buttons";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -114,10 +113,6 @@ export default async function ClinicsPage({
                         <ClinicStatusToggle
                           clinicId={c.id}
                           isActive={c.isActive}
-                        />
-                        <ClinicDeleteButton
-                          clinicId={c.id}
-                          clinicName={c.name}
                         />
                       </div>
                     </div>

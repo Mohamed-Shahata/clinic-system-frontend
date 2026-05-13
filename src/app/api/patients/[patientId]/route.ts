@@ -28,24 +28,40 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ patientId: string }> },
 ) {
-  const token = await getToken();
-  if (!token)
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  try {
+    const token = await getToken();
+    if (!token)
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const { patientId } = await params;
-  const formData = await request.formData();
-  const appointmentId = new URL(request.url).searchParams.get("appointmentId");
-  const url = new URL(`${getBackendBaseUrl()}/api/patients/${patientId}/attachments`);
-  if (appointmentId) url.searchParams.set("appointmentId", appointmentId);
-  const res = await proxyToBackend(
-    url,
-    {
+    const { patientId } = await params;
+    const appointmentId = new URL(request.url).searchParams.get("appointmentId");
+
+    // Parse the incoming FormData from browser
+    const incomingForm = await request.formData();
+    const file = incomingForm.get("file") as File | null;
+
+    if (!file) {
+      return NextResponse.json({ message: "No file provided" }, { status: 400 });
+    }
+
+    // Build a fresh FormData to forward — this preserves the correct multipart boundary
+    const outgoing = new FormData();
+    outgoing.append("file", file, file.name);
+
+    const url = new URL(`${getBackendBaseUrl()}/api/patients/${patientId}/attachments`);
+    if (appointmentId) url.searchParams.set("appointmentId", appointmentId);
+
+    // Do NOT set Content-Type — fetch sets it automatically with the correct boundary
+    const res = await fetch(url.toString(), {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-      cache: "no-store",
-    },
-  );
-  const data = await res.json().catch(() => ({}));
-  return NextResponse.json(data, { status: res.status });
+      body: outgoing,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Internal error";
+    return NextResponse.json({ message }, { status: 502 });
+  }
 }

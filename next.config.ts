@@ -10,4 +10,5 @@ export default withNextIntl({
       static: 180,
     },
   },
+  serverExternalPackages: [],
 });

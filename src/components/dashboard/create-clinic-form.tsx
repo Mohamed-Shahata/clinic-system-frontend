@@ -110,6 +110,43 @@ export function CreateClinicForm({
     e.preventDefault();
     setError(null);
     setCreated(null);
+
+    // ── Client-side validation for required fields ──
+    if (!adminFullName.trim()) {
+      setError(
+        isAr ? "الاسم الكامل للطبيب مطلوب" : "Doctor full name is required",
+      );
+      return;
+    }
+    if (!adminEmail.trim()) {
+      setError(
+        isAr ? "البريد الإلكتروني للطبيب مطلوب" : "Doctor email is required",
+      );
+      return;
+    }
+    if (!adminPassword) {
+      setError(
+        isAr
+          ? "كلمة المرور مطلوبة (8 أحرف على الأقل)"
+          : "Password is required (min 8 characters)",
+      );
+      return;
+    }
+    if (adminPassword.length < 8) {
+      setError(
+        isAr
+          ? "كلمة المرور يجب أن تكون 8 أحرف على الأقل"
+          : "Password must be at least 8 characters",
+      );
+      return;
+    }
+    if (!subscriptionPlanCode) {
+      setError(
+        isAr ? "يجب اختيار باقة اشتراك" : "A subscription plan is required",
+      );
+      return;
+    }
+
     setPending(true);
     try {
       const res = await fetch("/api/clinics", {
@@ -212,6 +249,7 @@ export function CreateClinicForm({
             <Input
               label={isAr ? "الاسم الكامل للمدير" : "Admin Full Name"}
               placeholder={isAr ? "د. اسم المدير" : "Dr. Clinic Owner"}
+              required
               value={adminFullName}
               onChange={(e) => setAdminFullName(e.target.value)}
             />
@@ -219,9 +257,10 @@ export function CreateClinicForm({
             {/* Email OR Phone - both optional, at least one */}
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label={isAr ? "البريد الإلكتروني" : "Email (optional)"}
+                label={isAr ? "البريد الإلكتروني" : "Email"}
                 type="email"
                 placeholder="doctor@clinic.com"
+                required
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
                 hint={
@@ -246,6 +285,7 @@ export function CreateClinicForm({
             <Input
               label={isAr ? "كلمة المرور" : "Admin Password"}
               type="password"
+              required
               minLength={8}
               value={adminPassword}
               onChange={(e) => setAdminPassword(e.target.value)}

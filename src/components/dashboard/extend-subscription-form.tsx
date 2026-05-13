@@ -48,9 +48,22 @@ export function ExtendSubscriptionForm({
     if (initialClinics.length > 0) return;
     setClinicsLoading(true);
     void fetch("/api/clinics")
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) {
+          console.error('[extend-subscription-form] Client fetch failed:', {
+            status: r.status,
+            statusText: r.statusText,
+          });
+          return [];
+        }
+        const data = await r.json();
+        return data;
+      })
       .then((data) => setClinics(Array.isArray(data) ? data : []))
-      .catch(() => setClinics([]))
+      .catch((err) => {
+        console.error('[extend-subscription-form] Client fetch error:', err);
+        setClinics([]);
+      })
       .finally(() => setClinicsLoading(false));
   }, [initialClinics.length]);
 

@@ -28,8 +28,6 @@ export function ClinicSettingsForm({
   const isAr = uiLocale === "ar";
 
   const [clinicName, setClinicName] = useState(name);
-  const [clinicTimezone, setClinicTimezone] = useState(timezone);
-  const [locale, setLocale] = useState(defaultLocale);
   const [logoUrl, setLogoUrl] = useState(currentLogoUrl ?? "");
   const [logoPreview, setLogoPreview] = useState<string | null>(
     currentLogoUrl ?? null,
@@ -85,8 +83,6 @@ export function ClinicSettingsForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: clinicName,
-          timezone: clinicTimezone,
-          defaultLocale: locale,
           logoUrl: logoUrl.trim() || undefined,
         }),
       });
@@ -214,26 +210,6 @@ export function ClinicSettingsForm({
                 />
               </div>
             </div>
-          </div>
-
-          <Input
-            label={isAr ? "المنطقة الزمنية" : "Timezone"}
-            value={clinicTimezone}
-            onChange={(e) => setClinicTimezone(e.target.value)}
-          />
-
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">
-              {isAr ? "اللغة" : "Language"}
-            </label>
-            <select
-              value={locale}
-              onChange={(e) => setLocale(e.target.value)}
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-foreground"
-            >
-              <option value="ar">{isAr ? "العربية" : "Arabic"}</option>
-              <option value="en">English</option>
-            </select>
           </div>
 
           {message && (

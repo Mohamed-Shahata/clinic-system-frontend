@@ -10,9 +10,19 @@ async function fetchClinics(token: string) {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
+
+    if (!res.ok) {
+      console.error('[extend-subscription] Failed to fetch clinics:', {
+        status: res.status,
+        statusText: res.statusText,
+      });
+      return [];
+    }
+
     const data = await res.json().catch(() => []);
     return Array.isArray(data) ? data : [];
-  } catch {
+  } catch (err) {
+    console.error('[extend-subscription] Error fetching clinics:', err);
     return [];
   }
 }

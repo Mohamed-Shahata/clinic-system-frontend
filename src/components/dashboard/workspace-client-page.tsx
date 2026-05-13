@@ -662,26 +662,31 @@ export function WorkspaceClientPage({
                   {waitingQueue.map((item, index) => (
                     <li
                       key={item.id}
-                      className="flex items-center gap-3 px-4 py-3"
+                      className="flex items-center gap-3 px-4 py-3.5 hover:bg-surface-2/50 transition-colors"
                     >
                       {/* Order number */}
                       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
                         {index + 1}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium text-foreground">
+                        <p className="truncate text-sm font-semibold text-foreground">
                           {item.patient.fullName}
                         </p>
-                        <p className="text-xs text-muted font-mono">
-                          {item.patient.code}
-                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <p className="text-xs text-muted font-mono">
+                            {item.patient.code}
+                          </p>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-medium text-blue-500">
+                            <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                            {isAr ? "انتظار" : "Waiting"}
+                          </span>
+                        </div>
                       </div>
-                      {statusBadge(item.status, isAr)}
                       {/* Only allow starting if no active patient */}
                       {!inProgressItem && (
                         <Button
                           size="sm"
-                          variant="success"
+                          variant="secondary"
                           loading={loadingStart === item.id}
                           onClick={() => void startVisit(item)}
                         >
@@ -992,15 +997,18 @@ export function WorkspaceClientPage({
                           عشان:
                           1- نص "Choose Files / No file chosen" مش قابل للترجمة (browser native)
                           2- نحتفظ بـ files في متغير قبل تكلير الـ input (race condition fix) */}
-                      <label className="mt-1 shrink-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 transition-colors">
-                        {isAr ? "اختيار ملفات" : "Choose Files"}
+                      <label className="mt-1 shrink-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        {isAr ? "رفع ملفات" : "Upload Files"}
                         <input
                           type="file"
                           multiple
                           accept="image/*,application/pdf"
                           className="hidden"
                           onChange={(event) => {
-                            const files = event.target.files; // ← احتفظ قبل التكلير
+                            const files = event.target.files;
                             handleUploadFiles(files);
                             event.currentTarget.value = "";
                           }}
@@ -1049,7 +1057,7 @@ export function WorkspaceClientPage({
                   </div>
 
                   {/* Action buttons */}
-                  <div className="flex flex-wrap gap-3 pt-2 border-t border-border">
+                  <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
                     <Button
                       variant="primary"
                       loading={savingSystem || uploadingFile}
@@ -1065,15 +1073,17 @@ export function WorkspaceClientPage({
                         !lastSavedPrescriptionId || savingSystem || loadingEnd
                       }
                     >
-                      🖨 {L.printRx}
+                      {L.printRx}
                     </Button>
+                    <div className="flex-1" />
                     <Button
-                      variant="danger"
+                      variant="secondary"
                       loading={loadingEnd}
                       disabled={savingSystem}
                       onClick={() => void endVisit()}
+                      className="border-danger/40 text-danger hover:bg-danger/10"
                     >
-                      ✓ {L.endVisit}
+                      {L.endVisit}
                     </Button>
                   </div>
                 </div>
