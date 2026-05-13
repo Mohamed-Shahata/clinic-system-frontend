@@ -194,11 +194,12 @@ export function SubscriptionRequestsClient({
         closeLabel={isAr ? "إغلاق" : "Close"}
         className="max-w-md"
       >
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-1">
           <Button
             type="button"
             variant="secondary"
             onClick={() => setConfirmReview(null)}
+            className="w-full sm:w-auto"
           >
             {isAr ? "إلغاء" : "Cancel"}
           </Button>
@@ -207,6 +208,7 @@ export function SubscriptionRequestsClient({
             variant={confirmReview?.approved ? "primary" : "danger"}
             loading={confirmReview ? reviewing === confirmReview.requestId : false}
             disabled={isPending || !confirmReview}
+            className="w-full sm:w-auto"
             onClick={() => {
               if (!confirmReview) return;
               void handleReview(confirmReview.requestId, confirmReview.approved);
@@ -229,29 +231,35 @@ export function SubscriptionRequestsClient({
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 flex-wrap">
-        {filterTabs.map((tab) => (
-          <a
-            key={tab.key ?? "all"}
-            href={
-              tab.key
-                ? `/${locale}/dashboard/super-admin/subscription-requests?status=${tab.key}`
-                : `/${locale}/dashboard/super-admin/subscription-requests`
-            }
-            className={`px-4 py-1.5 text-sm rounded-lg transition-colors font-medium ${
-              currentStatus === tab.key
-                ? "bg-primary text-primary-fg"
-                : "bg-surface border border-border text-foreground hover:bg-surface-2"
-            }`}
-          >
-            {isAr ? tab.ar : tab.en}
-            {tab.key === "PENDING" && (
-              <span className="ms-1.5 rounded-full bg-warning/20 px-1.5 text-warning text-xs">
-                {requests.filter((r) => r.status === "PENDING").length}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        {filterTabs.map((tab) => {
+          const count = tab.key
+            ? requests.filter((r) => r.status === tab.key).length
+            : requests.length;
+          const isActive = currentStatus === tab.key;
+          return (
+            <a
+              key={tab.key ?? "all"}
+              href={
+                tab.key
+                  ? `/${locale}/dashboard/super-admin/subscription-requests?status=${tab.key}`
+                  : `/${locale}/dashboard/super-admin/subscription-requests`
+              }
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-fg shadow-sm"
+                  : "bg-surface-2 border border-border text-muted hover:text-foreground hover:bg-surface"
+              }`}
+            >
+              {isAr ? tab.ar : tab.en}
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${
+                isActive ? "bg-white/20 text-white" : "bg-border text-muted"
+              }`}>
+                {count}
               </span>
-            )}
-          </a>
-        ))}
+            </a>
+          );
+        })}
       </div>
 
       {/* Requests list */}
@@ -279,30 +287,39 @@ export function SubscriptionRequestsClient({
 
               <CardBody className="space-y-4">
                 {/* Info grid */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    { label: isAr ? "الباقة" : "Plan", value: `${req.plan.name} — ${req.plan.price} EGP` },
-                    { label: isAr ? "المدة" : "Duration", value: `${req.plan.durationDays} ${isAr ? "يوم" : "days"}` },
-                    { label: isAr ? "مقدم الطلب" : "Requested By", value: req.requestedBy.fullName },
-                    { label: isAr ? "رقم التحويل" : "Transfer Phone", value: req.transferPhone, mono: true },
-                    {
-                      label: isAr ? "تاريخ الطلب" : "Requested",
-                      value: formatDateTime(req.createdAt),
-                    },
-                    ...(req.reviewedAt
-                      ? [{
-                          label: isAr ? "تاريخ المراجعة" : "Reviewed",
-                          value: formatDateTime(req.reviewedAt),
-                        }]
-                      : []),
-                  ].map((item) => (
-                    <div key={item.label} className="rounded-lg bg-surface-2/50 border border-card-border px-3 py-2.5">
-                      <p className="text-xs text-muted">{item.label}</p>
-                      <p className={`mt-0.5 text-sm font-medium text-foreground ${item.mono ? "font-mono" : ""}`}>
-                        {item.value}
-                      </p>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-surface-2/50 border border-card-border px-3 py-2.5">
+                      <p className="text-xs text-muted">{isAr ? "الباقة" : "Plan"}</p>
+                      <p className="mt-0.5 text-sm font-semibold text-foreground">{req.plan.name} — {req.plan.price} EGP</p>
                     </div>
-                  ))}
+                    <div className="rounded-lg bg-surface-2/50 border border-card-border px-3 py-2.5">
+                      <p className="text-xs text-muted">{isAr ? "المدة" : "Duration"}</p>
+                      <p className="mt-0.5 text-sm font-semibold text-foreground">{req.plan.durationDays} {isAr ? "يوم" : "days"}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-lg bg-surface-2/50 border border-card-border px-3 py-2.5">
+                      <p className="text-xs text-muted">{isAr ? "رقم التحويل" : "Transfer"}</p>
+                      <p className="mt-0.5 text-sm font-medium text-foreground font-mono">{req.transferPhone}</p>
+                    </div>
+                    <div className="rounded-lg bg-surface-2/50 border border-card-border px-3 py-2.5">
+                      <p className="text-xs text-muted">{isAr ? "مقدم الطلب" : "By"}</p>
+                      <p className="mt-0.5 text-sm font-medium text-foreground truncate">{req.requestedBy.fullName}</p>
+                    </div>
+                  </div>
+                  <div className={`grid gap-2 ${req.reviewedAt ? "grid-cols-2" : "grid-cols-1"}`}>
+                    <div className="rounded-lg bg-surface-2/50 border border-card-border px-3 py-2.5">
+                      <p className="text-xs text-muted">{isAr ? "تاريخ الطلب" : "Requested"}</p>
+                      <p className="mt-0.5 text-xs font-medium text-foreground">{formatDateTime(req.createdAt)}</p>
+                    </div>
+                    {req.reviewedAt && (
+                      <div className="rounded-lg bg-surface-2/50 border border-card-border px-3 py-2.5">
+                        <p className="text-xs text-muted">{isAr ? "تاريخ المراجعة" : "Reviewed"}</p>
+                        <p className="mt-0.5 text-xs font-medium text-foreground">{formatDateTime(req.reviewedAt)}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Notes */}
@@ -331,13 +348,13 @@ export function SubscriptionRequestsClient({
                   <button
                     type="button"
                     onClick={() => setExpandedImage(req.screenshotUrl)}
-                    className="block"
+                    className="block w-full overflow-hidden rounded-xl border border-card-border hover:opacity-90 transition-opacity cursor-zoom-in shadow-sm"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={req.screenshotUrl}
                       alt={isAr ? "إيصال الدفع" : "Payment receipt"}
-                      className="max-w-xs max-h-48 rounded-xl border border-card-border object-cover hover:opacity-90 transition-opacity cursor-zoom-in shadow-sm"
+                      className="w-full max-h-52 object-cover"
                     />
                   </button>
                   <p className="text-xs text-muted mt-1">

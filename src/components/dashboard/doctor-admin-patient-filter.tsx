@@ -36,66 +36,113 @@ export function DoctorAdminPatientFilter({
     router.push(`${basePath}?${params.toString()}`);
   }
 
-  const btnBase =
-    "px-3 py-1.5 text-sm rounded-lg border transition-colors font-medium";
-  const btnActive =
-    "bg-primary text-primary-foreground border-primary";
-  const btnInactive =
-    "bg-surface border-card-border text-foreground hover:border-primary/50";
+  const otherDoctors = doctors.filter((d) => d.id !== selfId);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span className="text-xs text-muted font-medium">
+    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+      <span className="text-xs text-muted font-medium shrink-0">
         {isAr ? "عرض:" : "Show:"}
       </span>
 
-      {/* All clinic patients */}
-      <button
-        className={`${btnBase} ${currentFilter === "clinic" ? btnActive : btnInactive}`}
-        onClick={() => applyFilter("clinic")}
-      >
-        {isAr ? "كل العيادة" : "All Clinic"}
-      </button>
-
-      {/* My own patients */}
-      <button
-        className={`${btnBase} ${currentFilter === "self" ? btnActive : btnInactive}`}
-        onClick={() => applyFilter("self")}
-      >
-        {isAr ? "مرضاي" : "My Patients"}
-      </button>
-
-      {/* Specific doctor */}
-      <div className="flex items-center gap-1">
+      {/* Pill group */}
+      <div className="flex flex-wrap gap-1.5">
+        {/* All clinic patients */}
         <button
-          className={`${btnBase} ${currentFilter === "doctor" ? btnActive : btnInactive}`}
-          onClick={() => {
-            if (selectedDoctorId) applyFilter("doctor", selectedDoctorId);
-          }}
+          className={[
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+            currentFilter === "clinic"
+              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+              : "bg-surface border-border text-foreground hover:border-primary/50 hover:bg-surface-2",
+          ].join(" ")}
+          onClick={() => applyFilter("clinic")}
         >
-          {isAr ? "دكتور محدد" : "By Doctor"}
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          {isAr ? "كل العيادة" : "All Clinic"}
         </button>
-        <select
-          className="text-sm border border-card-border rounded-lg px-2 py-1.5 bg-surface text-foreground focus:outline-none focus:border-primary"
-          value={selectedDoctorId}
-          onChange={(e) => {
-            setSelectedDoctorId(e.target.value);
-            if (e.target.value) applyFilter("doctor", e.target.value);
-          }}
+
+        {/* My own patients */}
+        <button
+          className={[
+            "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+            currentFilter === "self"
+              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+              : "bg-surface border-border text-foreground hover:border-primary/50 hover:bg-surface-2",
+          ].join(" ")}
+          onClick={() => applyFilter("self")}
         >
-          <option value="">
-            {isAr ? "اختر دكتور..." : "Select doctor..."}
-          </option>
-          {doctors
-            .filter((d) => d.id !== selfId)
-            .map((d) => (
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
+          {isAr ? "مرضاي" : "My Patients"}
+        </button>
+      </div>
+
+      {/* By Doctor — select styled as pill */}
+      {otherDoctors.length > 0 && (
+        <div className="relative">
+          <select
+            className={[
+              "appearance-none inline-flex items-center gap-1.5 ps-3 pe-7 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer outline-none focus:ring-2 ring-primary/30",
+              currentFilter === "doctor"
+                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                : "bg-surface border-border text-foreground hover:border-primary/50 hover:bg-surface-2",
+            ].join(" ")}
+            value={selectedDoctorId}
+            onChange={(e) => {
+              setSelectedDoctorId(e.target.value);
+              if (e.target.value) applyFilter("doctor", e.target.value);
+            }}
+          >
+            <option value="">
+              {isAr ? "📋 دكتور محدد..." : "📋 By Doctor..."}
+            </option>
+            {otherDoctors.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.fullName}
                 {d.specialty ? ` (${d.specialty})` : ""}
               </option>
             ))}
-        </select>
-      </div>
+          </select>
+          <span className="pointer-events-none absolute inset-y-0 end-2 flex items-center text-current opacity-70">
+            <svg
+              width="10"
+              height="10"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

@@ -268,9 +268,7 @@ export function AppointmentsClientPage({
   function defaultFee(doctorId = bDoctorId, visitType = bVisitType) {
     const doctor = doctors.find((d) => d.id === doctorId) ?? doctors[0];
     const fee =
-      visitType === "FOLLOW_UP"
-        ? doctor?.followUpFee
-        : doctor?.consultationFee;
+      visitType === "FOLLOW_UP" ? doctor?.followUpFee : doctor?.consultationFee;
     return String(fee ?? (visitType === "FOLLOW_UP" ? 150 : 300));
   }
 
@@ -293,7 +291,12 @@ export function AppointmentsClientPage({
     setBNotes("");
     setBError(null);
     setBookedAppointmentId(null);
-    setInvServices([{ name: "Consultation", amount: defaultFee(doctors[0]?.id ?? "", "NEW_VISIT") }]);
+    setInvServices([
+      {
+        name: "Consultation",
+        amount: defaultFee(doctors[0]?.id ?? "", "NEW_VISIT"),
+      },
+    ]);
     setInvPaymentMethod("cash");
     setInvError(null);
     setSkipInvoice(false);
@@ -693,44 +696,68 @@ export function AppointmentsClientPage({
       {/* Schedule */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-sm font-semibold text-foreground">
               {isAr ? "الجدول" : "Schedule"}
             </h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="text-xs text-muted">
-                {isAr ? "تصفية بالتاريخ" : "Filter by date"}
-              </label>
-              <input
-                type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground outline-none focus:ring-2 ring-primary/30"
-              />
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground outline-none focus:ring-2 ring-primary/30"
-              >
-                {STATUS_FILTERS.map((status) => (
-                  <option key={status} value={status}>
-                    {status === "ALL"
-                      ? isAr
-                        ? "كل الحالات"
-                        : "All statuses"
-                      : statusLabels[status] ?? status}
-                  </option>
-                ))}
-              </select>
-              {filterDate !== todayStr && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setFilterDate(todayStr)}
-                >
-                  {isAr ? "اليوم" : "Today"}
-                </Button>
-              )}
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted shrink-0">
+                  {isAr ? "التاريخ" : "Date"}
+                </label>
+                <input
+                  type="date"
+                  value={filterDate}
+                  onChange={(e) => setFilterDate(e.target.value)}
+                  className="flex-1 min-w-0 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground outline-none focus:ring-2 ring-primary/30 transition-shadow"
+                />
+                {filterDate !== todayStr && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setFilterDate(todayStr)}
+                    className="shrink-0"
+                  >
+                    {isAr ? "اليوم" : "Today"}
+                  </Button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-muted shrink-0">
+                  {isAr ? "الحالة" : "Status"}
+                </label>
+                <div className="relative flex-1 min-w-0">
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    className="w-full appearance-none rounded-lg border border-border bg-surface px-3 py-1.5 pe-7 text-xs text-foreground outline-none focus:ring-2 ring-primary/30 transition-shadow cursor-pointer"
+                  >
+                    {STATUS_FILTERS.map((status) => (
+                      <option key={status} value={status}>
+                        {status === "ALL"
+                          ? isAr
+                            ? "كل الحالات"
+                            : "All statuses"
+                          : (statusLabels[status] ?? status)}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="pointer-events-none absolute inset-y-0 end-2 flex items-center text-muted">
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -752,64 +779,64 @@ export function AppointmentsClientPage({
               {filteredAppointments.map((apt) => {
                 const locked = isPastAppointmentDay(apt.startsAt);
                 return (
-                    <div
-                      key={apt.id}
-                      className="px-5 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
-                    >
-                      <div>
-                        <p className="text-sm font-medium text-foreground">
-                          {apt.patient?.fullName ??
-                            (isAr ? "مريض غير محدد" : "No patient")}
-                        </p>
-                        <p className="text-xs text-muted">
-                          {mounted ? formatDateTime(apt.startsAt, locale) : ""} ·{" "}
-                          {apt.doctor?.fullName ??
-                            (isAr ? "طبيب غير محدد" : "No doctor")}
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant={statusVariant(apt.status)}>
-                          {statusLabels[apt.status] ?? apt.status}
-                        </Badge>
-                        {locked && (
-                          <Badge variant="muted">
-                            {isAr ? "مغلق" : "Locked"}
-                          </Badge>
-                        )}
-                        {apt.patient?.id && (
-                          <Link
-                            href={`/${locale}/dashboard/doctor-admin/patients/${apt.patient.id}`}
-                            className="inline-flex h-8 items-center rounded border border-border bg-surface px-3 text-xs font-medium text-foreground hover:bg-surface-2 transition-colors"
-                          >
-                            {isAr ? "ملف المريض" : "Patient file"}
-                          </Link>
-                        )}
-                        {!locked &&
-                          !["COMPLETED", "CANCELLED", "IN_PROGRESS"].includes(
-                            apt.status,
-                          ) && (
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              loading={savePending && editing?.id === apt.id}
-                              onClick={() => openEdit(apt)}
-                            >
-                              {isAr ? "تعديل" : "Edit"}
-                            </Button>
-                          )}
-                        {!locked &&
-                          !["COMPLETED", "CANCELLED"].includes(apt.status) && (
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              loading={actionPendingId === apt.id}
-                              onClick={() => setCancelConfirmId(apt.id)}
-                            >
-                              {isAr ? "إلغاء" : "Cancel"}
-                            </Button>
-                          )}
-                      </div>
+                  <div
+                    key={apt.id}
+                    className="px-5 py-3.5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {apt.patient?.fullName ??
+                          (isAr ? "مريض غير محدد" : "No patient")}
+                      </p>
+                      <p className="text-xs text-muted">
+                        {mounted ? formatDateTime(apt.startsAt, locale) : ""} ·{" "}
+                        {apt.doctor?.fullName ??
+                          (isAr ? "طبيب غير محدد" : "No doctor")}
+                      </p>
                     </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={statusVariant(apt.status)}>
+                        {statusLabels[apt.status] ?? apt.status}
+                      </Badge>
+                      {locked && (
+                        <Badge variant="muted">
+                          {isAr ? "مغلق" : "Locked"}
+                        </Badge>
+                      )}
+                      {apt.patient?.id && (
+                        <Link
+                          href={`/${locale}/dashboard/doctor-admin/patients/${apt.patient.id}`}
+                          className="inline-flex h-8 items-center rounded border border-border bg-surface px-3 text-xs font-medium text-foreground hover:bg-surface-2 transition-colors"
+                        >
+                          {isAr ? "ملف المريض" : "Patient file"}
+                        </Link>
+                      )}
+                      {!locked &&
+                        !["COMPLETED", "CANCELLED", "IN_PROGRESS"].includes(
+                          apt.status,
+                        ) && (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            loading={savePending && editing?.id === apt.id}
+                            onClick={() => openEdit(apt)}
+                          >
+                            {isAr ? "تعديل" : "Edit"}
+                          </Button>
+                        )}
+                      {!locked &&
+                        !["COMPLETED", "CANCELLED"].includes(apt.status) && (
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            loading={actionPendingId === apt.id}
+                            onClick={() => setCancelConfirmId(apt.id)}
+                          >
+                            {isAr ? "إلغاء" : "Cancel"}
+                          </Button>
+                        )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -1107,7 +1134,12 @@ export function AppointmentsClientPage({
                   value={bDoctorId}
                   onChange={(e) => {
                     setBDoctorId(e.target.value);
-                    setInvServices([{ name: "Consultation", amount: defaultFee(e.target.value, bVisitType) }]);
+                    setInvServices([
+                      {
+                        name: "Consultation",
+                        amount: defaultFee(e.target.value, bVisitType),
+                      },
+                    ]);
                   }}
                   className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
                 >
@@ -1126,10 +1158,15 @@ export function AppointmentsClientPage({
               </label>
               <select
                 value={bVisitType}
-              onChange={(e) => {
-                setBVisitType(e.target.value);
-                setInvServices([{ name: "Consultation", amount: defaultFee(bDoctorId, e.target.value) }]);
-              }}
+                onChange={(e) => {
+                  setBVisitType(e.target.value);
+                  setInvServices([
+                    {
+                      name: "Consultation",
+                      amount: defaultFee(bDoctorId, e.target.value),
+                    },
+                  ]);
+                }}
                 className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
               >
                 <option value="NEW_VISIT">
@@ -1252,27 +1289,31 @@ export function AppointmentsClientPage({
         open={Boolean(editing)}
         onClose={() => setEditing(null)}
         title={isAr ? "تعديل الموعد" : "Edit Appointment"}
-        description={isAr ? "غيّر نوع الزيارة والملاحظات" : "Change visit type or notes"}
+        description={
+          isAr ? "غيّر نوع الزيارة والملاحظات" : "Change visit type or notes"
+        }
         closeLabel={isAr ? "إغلاق" : "Close"}
       >
         {editError && <Alert variant="error">{editError}</Alert>}
         <div className="space-y-4 mt-2">
-          {doctors.length > 1 ? <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">
-              {isAr ? "الطبيب" : "Doctor"}
-            </label>
-            <select
-              value={editDoctorId}
-              onChange={(e) => setEditDoctorId(e.target.value)}
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
-            >
-              {doctors.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.fullName} — {d.specialty ?? (isAr ? "عام" : "General")}
-                </option>
-              ))}
-            </select>
-          </div> : null}
+          {doctors.length > 1 ? (
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-foreground">
+                {isAr ? "الطبيب" : "Doctor"}
+              </label>
+              <select
+                value={editDoctorId}
+                onChange={(e) => setEditDoctorId(e.target.value)}
+                className="w-full rounded border border-border bg-surface px-3 py-2 text-sm"
+              >
+                {doctors.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.fullName} — {d.specialty ?? (isAr ? "عام" : "General")}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
           <div className="space-y-1.5">
             <label className="block text-sm font-medium text-foreground">
               {isAr ? "نوع الزيارة" : "Visit Type"}

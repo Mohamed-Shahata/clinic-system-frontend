@@ -529,40 +529,35 @@ ${medsHTML}
       {/* Patient Info Card */}
       <Card>
         <CardBody>
-          <div className="flex items-start gap-4 flex-wrap">
+          <div className="flex items-start gap-3">
             {/* Avatar */}
-            <div className="h-14 w-14 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-xl font-bold text-primary">
+            <div className="h-12 w-12 sm:h-14 sm:w-14 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-lg sm:text-xl font-bold text-primary">
               {patient.fullName.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg font-bold text-foreground">
+                <h1 className="text-base sm:text-lg font-bold text-foreground leading-tight">
                   {patient.fullName}
                 </h1>
                 {patient.code && (
                   <span className="rounded-full bg-surface-2 border border-border px-2 py-0.5 text-xs font-mono text-muted">
-                    #{patient.code}
+                    {patient.code}
                   </span>
                 )}
               </div>
-              <div className="mt-2 flex flex-wrap gap-4 text-sm text-muted">
+              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted">
                 {patient.phone && <span dir="ltr">{patient.phone}</span>}
                 {age !== null && (
-                  <span>
-                    {formatNumber(age, locale)} {isAr ? "سنة" : "years old"}
-                  </span>
+                  <span>{formatNumber(age, locale)} {isAr ? "سنة" : "y/o"}</span>
                 )}
                 {patient.dateOfBirth && (
-                  <span>
-                    {new Date(patient.dateOfBirth).toLocaleDateString(
-                      isAr ? "ar-EG" : "en-GB",
-                    )}
-                  </span>
+                  <span>{new Date(patient.dateOfBirth).toLocaleDateString(isAr ? "ar-EG" : "en-GB")}</span>
                 )}
               </div>
             </div>
-            {/* Stats */}
-            <div className="flex gap-3">
+          </div>
+          {/* Stats row */}
+          <div className="mt-3 flex gap-2 border-t border-border pt-3">
               {[
                 {
                   label: isAr ? "زيارة" : "Visits",
@@ -582,15 +577,14 @@ ${medsHTML}
               ].map((s) => (
                 <div
                   key={s.label}
-                  className="rounded-xl border border-card-border bg-surface-2/50 px-4 py-3 text-center"
+                  className="flex-1 rounded-xl border border-card-border bg-surface-2/50 px-2 py-2 sm:px-4 sm:py-3 text-center"
                 >
-                  <p className={`text-2xl font-extrabold ${s.color}`}>
+                  <p className={`text-xl sm:text-2xl font-extrabold ${s.color}`}>
                     {formatNumber(s.val, locale)}
                   </p>
                   <p className="text-xs text-muted">{s.label}</p>
                 </div>
               ))}
-            </div>
           </div>
 
           {patient.medicalNotes && (
@@ -606,7 +600,7 @@ ${medsHTML}
         </CardBody>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Card>
           <CardBody>
             <p className="text-xs font-semibold text-muted">

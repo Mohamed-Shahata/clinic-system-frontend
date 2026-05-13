@@ -310,17 +310,18 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
         className={[
-          "w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl border border-card-border bg-card shadow-card-md",
+          "w-full sm:max-w-2xl max-h-[92dvh] sm:max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-xl border border-card-border bg-card shadow-card-md",
           className,
         ].join(" ")}
       >
-        <div className="border-b border-card-border px-5 py-4">
+        <div className="border-b border-card-border px-4 sm:px-5 py-3 sm:py-4">
           <div className="flex items-start justify-between gap-3">
             <div>
               <h2 className="text-base font-semibold text-foreground">
@@ -335,7 +336,7 @@ export function Modal({
             </Button>
           </div>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="p-4 sm:p-5">{children}</div>
       </div>
     </div>
   );

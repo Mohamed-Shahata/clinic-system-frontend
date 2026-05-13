@@ -82,54 +82,39 @@ export default async function ClinicsPage({
                 {clinics.map((c) => (
                   <div
                     key={c.id}
-                    className="px-5 py-3.5 hover:bg-surface-2 transition-colors"
+                    className="px-4 py-3 hover:bg-surface-2 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm text-foreground">
-                            {c.name}
-                          </p>
-                          <Badge variant={c.isActive ? "success" : "danger"}>
-                            {c.isActive ? t("active") : t("suspended")}
-                          </Badge>
-                        </div>
-                        <p className="font-mono text-xs text-muted mt-0.5">
-                          {c.slug}
-                        </p>
-                        <p className="text-xs text-primary mt-1">
-                          {c.subscription?.plan?.name
-                            ? `${c.subscription.plan.name} · ${t("expires")} ${new Date(c.subscription.expiresAt).toLocaleDateString()}`
-                            : t("noSubscription")}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <Badge variant="default">
-                          {c._count.clinicUsers} {t("staff")}
-                        </Badge>
-                        <Badge variant="muted">
-                          {c._count.patients} {t("patientsShort")}
-                        </Badge>
-                        <ClinicStatusToggle
-                          clinicId={c.id}
-                          isActive={c.isActive}
-                        />
-                      </div>
+                    {/* Row: name + status + toggle */}
+                    <div className="flex items-center gap-2 min-w-0">
+                      <p className="flex-1 min-w-0 font-semibold text-sm text-foreground truncate">
+                        {c.name}
+                      </p>
+                      <Badge variant={c.isActive ? "success" : "danger"}>
+                        {c.isActive ? t("active") : t("suspended")}
+                      </Badge>
+                      <ClinicStatusToggle clinicId={c.id} isActive={c.isActive} />
                     </div>
-                    <div className="flex gap-3 mt-1.5 text-xs text-muted">
-                      <span>{c.timezone}</span>
-                      <span>·</span>
-                      <span>
-                        {c.defaultLocale === "ar"
-                          ? isAr
-                            ? "عربي"
-                            : "Arabic"
-                          : isAr
-                            ? "إنجليزي"
-                            : "English"}
+                    {/* Slug + subscription */}
+                    <div className="mt-0.5 flex items-center gap-2 flex-wrap">
+                      <p className="font-mono text-xs text-muted">{c.slug}</p>
+                      <span className="text-muted/40">·</span>
+                      <p className={`text-xs font-medium ${c.subscription?.plan?.name ? "text-primary" : "text-muted"}`}>
+                        {c.subscription?.plan?.name
+                          ? `${c.subscription.plan.name} · ${t("expires")} ${new Date(c.subscription.expiresAt).toLocaleDateString()}`
+                          : t("noSubscription")}
+                      </p>
+                    </div>
+                    {/* Stats */}
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 border border-border px-2 py-0.5 text-[11px] text-muted">
+                        {c._count.clinicUsers} {t("staff")}
                       </span>
-                      <span>·</span>
-                      <span>{new Date(c.createdAt).toLocaleDateString()}</span>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-surface-2 border border-border px-2 py-0.5 text-[11px] text-muted">
+                        {c._count.patients} {t("patientsShort")}
+                      </span>
+                      <span className="text-[11px] text-muted ms-auto">
+                        {new Date(c.createdAt).toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
                 ))}

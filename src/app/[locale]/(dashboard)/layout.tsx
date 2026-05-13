@@ -1,6 +1,7 @@
 import { getSessionFromCookies } from "@/lib/auth/get-session-from-cookies";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { ToastProvider } from "@/components/ui/toast";
+import { TokenRefresher } from "@/components/dashboard/token-refresher";
 import { headers } from "next/headers";
 import type { ReactNode } from "react";
 
@@ -20,6 +21,7 @@ export default async function DashboardLayout({
 
   return (
     <DashboardShell locale={locale} claims={claims} currentPath={currentPath}>
+      <TokenRefresher />
       <ToastProvider>
         <div className="mx-auto max-w-5xl">{children}</div>
       </ToastProvider>

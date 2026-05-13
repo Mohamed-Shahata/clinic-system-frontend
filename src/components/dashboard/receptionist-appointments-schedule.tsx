@@ -27,12 +27,7 @@ type Appointment = {
 
 type Doctor = { id: string; fullName: string; specialty: string | null };
 
-const ALLOWED_STATUSES = [
-  "IN_QUEUE",
-  "IN_PROGRESS",
-  "COMPLETED",
-  "CANCELLED",
-];
+const ALLOWED_STATUSES = ["IN_QUEUE", "IN_PROGRESS", "COMPLETED", "CANCELLED"];
 
 function formatDateTime(iso: string, locale: string): string {
   const date = new Date(iso);
@@ -219,25 +214,26 @@ export function ReceptionistAppointmentsSchedule({
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-sm font-semibold text-foreground">
               {isAr ? "الجدول" : "Schedule"}
             </h2>
             <div className="flex items-center gap-2">
-              <label className="text-xs text-muted">
-                {isAr ? "تصفية بالتاريخ" : "Filter by date"}
+              <label className="text-xs text-muted shrink-0">
+                {isAr ? "التاريخ" : "Date"}
               </label>
               <input
                 type="date"
                 value={filterDate}
                 onChange={(e) => setFilterDate(e.target.value)}
-                className="rounded border border-border bg-surface px-2 py-1 text-xs text-foreground outline-none focus:ring-2 ring-primary/30"
+                className="flex-1 min-w-0 rounded-lg border border-border bg-surface px-2.5 py-1.5 text-xs text-foreground outline-none focus:ring-2 ring-primary/30 transition-shadow"
               />
               {filterDate !== todayStr && (
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => setFilterDate(todayStr)}
+                  className="shrink-0"
                 >
                   {isAr ? "اليوم" : "Today"}
                 </Button>
