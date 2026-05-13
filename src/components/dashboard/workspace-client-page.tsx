@@ -147,32 +147,32 @@ function statusBadge(status: string, isAr: boolean) {
     }
   > = {
     IN_QUEUE: {
-      className: "bg-amber-50 text-amber-700",
-      dot: "bg-amber-400",
+      className: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+      dot: "bg-blue-400",
       label: "Waiting",
-      labelAr: "قيد الانتظار",
+      labelAr: "انتظار",
     },
     IN_PROGRESS: {
-      className: "bg-orange-50 text-orange-700",
-      dot: "bg-orange-400",
+      className: "bg-primary/10 text-primary border border-primary/25",
+      dot: "bg-primary animate-pulse",
       label: "In Progress",
       labelAr: "قيد التنفيذ",
     },
     COMPLETED: {
-      className: "bg-green-50 text-green-700",
-      dot: "bg-green-400",
+      className: "bg-success/10 text-success border border-success/20",
+      dot: "bg-success",
       label: "Completed",
       labelAr: "مكتمل",
     },
     CANCELLED: {
-      className: "bg-gray-100 text-gray-500",
-      dot: "bg-gray-400",
+      className: "bg-surface-2 text-muted border border-border",
+      dot: "bg-muted",
       label: "Cancelled",
       labelAr: "ملغي",
     },
   };
   const entry = map[status] ?? {
-    className: "bg-surface-2 text-muted",
+    className: "bg-surface-2 text-muted border border-border",
     dot: "bg-muted",
     label: status,
     labelAr: status,
@@ -301,6 +301,8 @@ export function WorkspaceClientPage({
     };
   }, []);
 
+  const MAX_UPLOAD_FILES = 5;
+
   function validateUploadFile(file: File) {
     const allowed = [
       "image/jpeg",
@@ -315,8 +317,11 @@ export function WorkspaceClientPage({
   function handleUploadFiles(files: FileList | null) {
     if (!files) return;
     setUploadFiles((prev) => {
+      const remaining = MAX_UPLOAD_FILES - prev.length;
+      if (remaining <= 0) return prev;
       const next = [...prev];
-      for (const file of Array.from(files)) {
+      const toAdd = Array.from(files).slice(0, remaining);
+      for (const file of toAdd) {
         const valid = validateUploadFile(file);
         next.push({
           file,
@@ -983,30 +988,33 @@ export function WorkspaceClientPage({
 
                   {saveError && <Alert variant="error">{saveError}</Alert>}
                   {savedAt && <Alert variant="success">{L.savedOk}</Alert>}
-                  <div className="rounded-lg border border-dashed border-card-border bg-surface px-3 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">
-                          {L.optionalFile}
-                        </p>
-                        <p className="mt-1 text-xs text-muted">
+                  <div className="rounded-lg border border-dashed border-card-border bg-surface px-4 py-4 space-y-3">
+                    {/* Header row */}
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">
+                            {L.optionalFile}
+                          </p>
+                          <span className={`text-xs font-medium tabular-nums px-1.5 py-0.5 rounded-full ${uploadFiles.length >= MAX_UPLOAD_FILES ? "bg-danger/10 text-danger" : "bg-surface-2 text-muted"}`}>
+                            {uploadFiles.length}/{MAX_UPLOAD_FILES}
+                          </span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted">
                           {L.optionalFileHint}
                         </p>
                       </div>
-                      {/* FIX-1 & FIX-2: استخدام label مخصص بدل input native
-                          عشان:
-                          1- نص "Choose Files / No file chosen" مش قابل للترجمة (browser native)
-                          2- نحتفظ بـ files في متغير قبل تكلير الـ input (race condition fix) */}
-                      <label className="mt-1 shrink-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <label className={`shrink-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${uploadFiles.length >= MAX_UPLOAD_FILES ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-50 pointer-events-none" : "border-border bg-surface text-foreground hover:bg-surface-2"}`}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                         </svg>
-                        {isAr ? "رفع ملفات" : "Upload Files"}
+                        {isAr ? "إضافة ملفات" : "Add Files"}
                         <input
                           type="file"
                           multiple
                           accept="image/*,application/pdf"
                           className="hidden"
+                          disabled={uploadFiles.length >= MAX_UPLOAD_FILES}
                           onChange={(event) => {
                             const files = event.target.files;
                             handleUploadFiles(files);
@@ -1015,43 +1023,67 @@ export function WorkspaceClientPage({
                         />
                       </label>
                     </div>
-                    {uploadFiles.length > 0 && (
-                      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+
+                    {/* File previews grid */}
+                    {uploadFiles.length > 0 ? (
+                      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                         {uploadFiles.map((item, index) => (
                           <div
                             key={`${item.file.name}-${index}`}
-                            className="relative rounded border border-border bg-card p-2"
+                            className={`group relative rounded-lg border bg-card overflow-hidden ${item.error ? "border-danger/40" : "border-border"}`}
                           >
+                            {/* Remove button */}
                             <button
                               type="button"
                               onClick={() => removeUploadFile(index)}
-                              className="absolute end-1 top-1 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white"
+                              className="absolute top-1 end-1 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity text-xs leading-none"
                               aria-label={L.removeFile}
-                              title={L.removeFile}
                             >
-                              ×
+                              ✕
                             </button>
+                            {/* Preview */}
                             {item.url ? (
                               <img
                                 src={item.url}
                                 alt={item.file.name}
-                                className="h-20 w-full rounded object-cover"
+                                className="h-16 w-full object-cover"
                               />
                             ) : (
-                              <div className="flex h-20 items-center justify-center rounded bg-surface-2 text-xs font-semibold text-muted">
-                                PDF
+                              <div className="flex h-16 flex-col items-center justify-center gap-1 bg-surface-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted">
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                                </svg>
+                                <span className="text-[9px] font-bold text-muted uppercase">PDF</span>
                               </div>
                             )}
-                            <p className="mt-1 truncate text-xs text-foreground">
-                              {item.file.name}
-                            </p>
-                            {item.error && (
-                              <p className="mt-1 text-[10px] leading-snug text-danger">
-                                {item.error}
+                            {/* File name */}
+                            <div className="px-1.5 py-1">
+                              <p className="truncate text-[10px] text-foreground leading-tight">
+                                {item.file.name}
                               </p>
-                            )}
+                              {item.error ? (
+                                <p className="text-[9px] text-danger leading-tight mt-0.5">{isAr ? "غير مدعوم" : "Invalid"}</p>
+                              ) : (
+                                <p className="text-[9px] text-muted leading-tight mt-0.5">
+                                  {(item.file.size / 1024).toFixed(0)} KB
+                                </p>
+                              )}
+                            </div>
                           </div>
                         ))}
+                        {/* Empty slots */}
+                        {uploadFiles.length < MAX_UPLOAD_FILES && Array.from({ length: MAX_UPLOAD_FILES - uploadFiles.length }).map((_, i) => (
+                          <div key={`empty-${i}`} className="h-[calc(64px+36px)] rounded-lg border border-dashed border-border/40 bg-surface-2/30" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/40 py-6 text-center">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
+                          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                        <p className="text-xs text-muted">
+                          {isAr ? `اختر حتى ${MAX_UPLOAD_FILES} ملفات (صور أو PDF)` : `Choose up to ${MAX_UPLOAD_FILES} files (images or PDF)`}
+                        </p>
                       </div>
                     )}
                   </div>
