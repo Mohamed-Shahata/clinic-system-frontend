@@ -1,4 +1,6 @@
 "use client";
+// @ts-ignore
+import { InstallmentsClient } from "@/components/dashboard/installments-client";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -72,8 +74,10 @@ function statusVariant(status: string) {
 
 function formatMedicationValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  if (typeof value === "string" || typeof value === "number") return String(value);
-  if (Array.isArray(value)) return value.map(formatMedicationValue).filter(Boolean).join("، ");
+  if (typeof value === "string" || typeof value === "number")
+    return String(value);
+  if (Array.isArray(value))
+    return value.map(formatMedicationValue).filter(Boolean).join("، ");
   if (typeof value === "object") {
     return Object.values(value)
       .map(formatMedicationValue)
@@ -88,14 +92,16 @@ function parseMedications(raw: string | object): string[] {
   try {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (Array.isArray(parsed)) {
-      return parsed.map((m) =>
-        typeof m === "string"
-          ? m
-          : [m.name, m.dose, m.frequency, m.duration, m.instructions, m.notes]
-              .filter(Boolean)
-              .map(formatMedicationValue)
-              .join(" — "),
-      ).filter(Boolean);
+      return parsed
+        .map((m) =>
+          typeof m === "string"
+            ? m
+            : [m.name, m.dose, m.frequency, m.duration, m.instructions, m.notes]
+                .filter(Boolean)
+                .map(formatMedicationValue)
+                .join(" — "),
+        )
+        .filter(Boolean);
     }
     if (typeof parsed === "object") {
       return Object.entries(parsed)
@@ -147,7 +153,10 @@ function fileUrl(file: Attachment) {
 }
 
 function isImage(file: Attachment) {
-  return file.mimeType?.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(file.name);
+  return (
+    file.mimeType?.startsWith("image/") ||
+    /\.(png|jpe?g|webp|gif)$/i.test(file.name)
+  );
 }
 
 function isPdf(file: Attachment) {
@@ -245,7 +254,7 @@ function sameDay(a: string, b: string): boolean {
 export function PatientDetailClient({ locale, patient }: Props) {
   const isAr = locale === "ar";
   const [activeTab, setActiveTab] = useState<
-    "timeline" | "prescriptions" | "attachments"
+    "timeline" | "prescriptions" | "attachments" | "installments"
   >("timeline");
   const [attachments, setAttachments] = useState(patient.attachments ?? []);
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
@@ -277,7 +286,9 @@ export function PatientDetailClient({ locale, patient }: Props) {
       CONSULTATION: ["استشارة", "Consultation"],
       WALK_IN: ["زيارة مباشرة", "Walk-in"],
     };
-    return (labels[type ?? ""] ?? [isAr ? "زيارة" : "Visit", "Visit"])[isAr ? 0 : 1];
+    return (labels[type ?? ""] ?? [isAr ? "زيارة" : "Visit", "Visit"])[
+      isAr ? 0 : 1
+    ];
   }
 
   function prescriptionsForVisit(appt: Appointment) {
@@ -288,7 +299,8 @@ export function PatientDetailClient({ locale, patient }: Props) {
 
   function attachmentsForVisit(appt: Appointment) {
     return attachments.filter(
-      (a) => a.appointmentId === appt.id || sameDay(a.uploadedAt, appt.startsAt),
+      (a) =>
+        a.appointmentId === appt.id || sameDay(a.uploadedAt, appt.startsAt),
     );
   }
 
@@ -478,6 +490,10 @@ ${medsHTML}
         ? `الملفات (${attachments.length})`
         : `Files (${attachments.length})`,
     },
+    {
+      key: "installments" as const,
+      label: isAr ? "التقسيط" : "Installments",
+    },
   ];
 
   return (
@@ -548,43 +564,49 @@ ${medsHTML}
               <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted">
                 {patient.phone && <span dir="ltr">{patient.phone}</span>}
                 {age !== null && (
-                  <span>{formatNumber(age, locale)} {isAr ? "سنة" : "y/o"}</span>
+                  <span>
+                    {formatNumber(age, locale)} {isAr ? "سنة" : "y/o"}
+                  </span>
                 )}
                 {patient.dateOfBirth && (
-                  <span>{new Date(patient.dateOfBirth).toLocaleDateString(isAr ? "ar-EG" : "en-GB")}</span>
+                  <span>
+                    {new Date(patient.dateOfBirth).toLocaleDateString(
+                      isAr ? "ar-EG" : "en-GB",
+                    )}
+                  </span>
                 )}
               </div>
             </div>
           </div>
           {/* Stats row */}
           <div className="mt-3 flex gap-2 border-t border-border pt-3">
-              {[
-                {
-                  label: isAr ? "زيارة" : "Visits",
-                  val: appointments.length,
-                  color: "text-primary",
-                },
-                {
-                  label: isAr ? "مكتملة" : "Done",
-                  val: completedVisits.length,
-                  color: "text-success",
-                },
-                {
-                  label: isAr ? "وصفة" : "Rx",
-                  val: prescriptions.length,
-                  color: "text-warning",
-                },
-              ].map((s) => (
-                <div
-                  key={s.label}
-                  className="flex-1 rounded-xl border border-card-border bg-surface-2/50 px-2 py-2 sm:px-4 sm:py-3 text-center"
-                >
-                  <p className={`text-xl sm:text-2xl font-extrabold ${s.color}`}>
-                    {formatNumber(s.val, locale)}
-                  </p>
-                  <p className="text-xs text-muted">{s.label}</p>
-                </div>
-              ))}
+            {[
+              {
+                label: isAr ? "زيارة" : "Visits",
+                val: appointments.length,
+                color: "text-primary",
+              },
+              {
+                label: isAr ? "مكتملة" : "Done",
+                val: completedVisits.length,
+                color: "text-success",
+              },
+              {
+                label: isAr ? "وصفة" : "Rx",
+                val: prescriptions.length,
+                color: "text-warning",
+              },
+            ].map((s) => (
+              <div
+                key={s.label}
+                className="flex-1 rounded-xl border border-card-border bg-surface-2/50 px-2 py-2 sm:px-4 sm:py-3 text-center"
+              >
+                <p className={`text-xl sm:text-2xl font-extrabold ${s.color}`}>
+                  {formatNumber(s.val, locale)}
+                </p>
+                <p className="text-xs text-muted">{s.label}</p>
+              </div>
+            ))}
           </div>
 
           {patient.medicalNotes && (
@@ -716,15 +738,15 @@ ${medsHTML}
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm font-semibold text-foreground">
-                            {new Date(appt.startsAt).toLocaleDateString(
-                              isAr ? "ar-EG" : "en-GB",
-                              {
-                                weekday: "long",
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              },
-                            )}
+                              {new Date(appt.startsAt).toLocaleDateString(
+                                isAr ? "ar-EG" : "en-GB",
+                                {
+                                  weekday: "long",
+                                  year: "numeric",
+                                  month: "long",
+                                  day: "numeric",
+                                },
+                              )}
                             </p>
                             <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                               {visitTypeLabel(appt.visitType)}
@@ -752,47 +774,57 @@ ${medsHTML}
                       {prescriptionsForVisit(appt).length > 0 && (
                         <div className="mt-3 space-y-3 border-t border-card-border pt-3">
                           {prescriptionsForVisit(appt).map((p) => {
-                                const payload = parsePrescriptionPayload(p.medications);
-                                return (
-                                  <div
-                                    key={p.id}
-                                    className="space-y-3 rounded-lg bg-surface-2/60 px-3 py-3"
-                                  >
-                                    {p.diagnosis && (
-                                      <InfoBlock
-                                        title={isAr ? "التشخيص" : "Diagnosis"}
-                                        value={p.diagnosis}
-                                        compact
-                                      />
-                                    )}
-                                    {payload.medications.length > 0 && (
-                                      <ListBlock
-                                        title={isAr ? "الأدوية" : "Medications"}
-                                        items={payload.medications}
-                                      />
-                                    )}
-                                    {payload.tests.length > 0 && (
-                                      <ListBlock
-                                        title={isAr ? "التحاليل المطلوبة" : "Requested tests"}
-                                        items={payload.tests}
-                                      />
-                                    )}
-                                    {payload.imaging.length > 0 && (
-                                      <ListBlock
-                                        title={isAr ? "الأشعة المطلوبة" : "Requested imaging"}
-                                        items={payload.imaging}
-                                      />
-                                    )}
-                                    {(payload.notes || p.notes) && (
-                                      <InfoBlock
-                                        title={isAr ? "ملاحظات" : "Notes"}
-                                        value={payload.notes || p.notes || ""}
-                                        compact
-                                      />
-                                    )}
-                                  </div>
-                                );
-                              })}
+                            const payload = parsePrescriptionPayload(
+                              p.medications,
+                            );
+                            return (
+                              <div
+                                key={p.id}
+                                className="space-y-3 rounded-lg bg-surface-2/60 px-3 py-3"
+                              >
+                                {p.diagnosis && (
+                                  <InfoBlock
+                                    title={isAr ? "التشخيص" : "Diagnosis"}
+                                    value={p.diagnosis}
+                                    compact
+                                  />
+                                )}
+                                {payload.medications.length > 0 && (
+                                  <ListBlock
+                                    title={isAr ? "الأدوية" : "Medications"}
+                                    items={payload.medications}
+                                  />
+                                )}
+                                {payload.tests.length > 0 && (
+                                  <ListBlock
+                                    title={
+                                      isAr
+                                        ? "التحاليل المطلوبة"
+                                        : "Requested tests"
+                                    }
+                                    items={payload.tests}
+                                  />
+                                )}
+                                {payload.imaging.length > 0 && (
+                                  <ListBlock
+                                    title={
+                                      isAr
+                                        ? "الأشعة المطلوبة"
+                                        : "Requested imaging"
+                                    }
+                                    items={payload.imaging}
+                                  />
+                                )}
+                                {(payload.notes || p.notes) && (
+                                  <InfoBlock
+                                    title={isAr ? "ملاحظات" : "Notes"}
+                                    value={payload.notes || p.notes || ""}
+                                    compact
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                       {attachmentsForVisit(appt).length > 0 && (
@@ -888,12 +920,18 @@ ${medsHTML}
                     )}
                     {payload.tests.length > 0 && (
                       <div className="mt-3 border-t border-card-border pt-2">
-                        <ListBlock title={isAr ? "التحاليل المطلوبة" : "Requested tests"} items={payload.tests} />
+                        <ListBlock
+                          title={isAr ? "التحاليل المطلوبة" : "Requested tests"}
+                          items={payload.tests}
+                        />
                       </div>
                     )}
                     {payload.imaging.length > 0 && (
                       <div className="mt-3 border-t border-card-border pt-2">
-                        <ListBlock title={isAr ? "الأشعة المطلوبة" : "Requested imaging"} items={payload.imaging} />
+                        <ListBlock
+                          title={isAr ? "الأشعة المطلوبة" : "Requested imaging"}
+                          items={payload.imaging}
+                        />
                       </div>
                     )}
                   </CardBody>
@@ -901,6 +939,17 @@ ${medsHTML}
               );
             })
           )}
+        </div>
+      )}
+
+      {/* Installments Tab */}
+      {activeTab === "installments" && (
+        <div className="py-2">
+          <InstallmentsClient
+            patientId={patient.id}
+            patientName={patient.fullName}
+            showCreate={true}
+          />
         </div>
       )}
 
@@ -947,7 +996,11 @@ ${medsHTML}
               {isAr ? "لا توجد ملفات مرفقة" : "No attachments uploaded"}
             </div>
           ) : (
-            <FileGrid files={attachments} isAr={isAr} onPreview={setPreviewFile} />
+            <FileGrid
+              files={attachments}
+              isAr={isAr}
+              onPreview={setPreviewFile}
+            />
           )}
         </div>
       )}

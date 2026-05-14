@@ -2,6 +2,7 @@ import { getSessionFromCookies } from "@/lib/auth/get-session-from-cookies";
 import { getBackendBaseUrl } from "@/lib/backend-url";
 import { StatCard } from "@/components/ui";
 import { DoctorAdminAnalytics } from "@/components/dashboard/doctor-admin-analytics";
+import { SalariesOverview } from "@/components/dashboard/salaries-overview";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
@@ -12,8 +13,12 @@ async function fetchPatients(token: string) {
       cache: "no-store",
     });
     if (!res.ok) return [];
-    return res.json() as Promise<Array<{ id: string; fullName: string; phone?: string; createdAt: string }>>;
-  } catch { return []; }
+    return res.json() as Promise<
+      Array<{ id: string; fullName: string; phone?: string; createdAt: string }>
+    >;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchReceptionists(token: string) {
@@ -23,8 +28,12 @@ async function fetchReceptionists(token: string) {
       cache: "no-store",
     });
     if (!res.ok) return [];
-    return res.json() as Promise<Array<{ id: string; fullName: string; isActive: boolean }>>;
-  } catch { return []; }
+    return res.json() as Promise<
+      Array<{ id: string; fullName: string; isActive: boolean }>
+    >;
+  } catch {
+    return [];
+  }
 }
 
 async function fetchInvoices(token: string) {
@@ -34,11 +43,19 @@ async function fetchInvoices(token: string) {
       cache: "no-store",
     });
     if (!res.ok) return [];
-    return res.json() as Promise<Array<{ createdAt: string; totalAmount: string | number }>>;
-  } catch { return []; }
+    return res.json() as Promise<
+      Array<{ createdAt: string; totalAmount: string | number }>
+    >;
+  } catch {
+    return [];
+  }
 }
 
-export default async function DoctorAdminPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function DoctorAdminPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
   const { locale } = await params;
   const isAr = locale === "ar";
   const session = await getSessionFromCookies();
@@ -54,13 +71,16 @@ export default async function DoctorAdminPage({ params }: { params: Promise<{ lo
   ]);
 
   const monthlyRevenue = Object.values(
-    invoices.reduce<Record<string, { month: string; amount: number }>>((acc, item) => {
-      const d = new Date(item.createdAt);
-      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      if (!acc[month]) acc[month] = { month, amount: 0 };
-      acc[month].amount += Number(item.totalAmount ?? 0);
-      return acc;
-    }, {}),
+    invoices.reduce<Record<string, { month: string; amount: number }>>(
+      (acc, item) => {
+        const d = new Date(item.createdAt);
+        const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (!acc[month]) acc[month] = { month, amount: 0 };
+        acc[month].amount += Number(item.totalAmount ?? 0);
+        return acc;
+      },
+      {},
+    ),
   ).sort((a, b) => a.month.localeCompare(b.month));
 
   return (
@@ -72,7 +92,9 @@ export default async function DoctorAdminPage({ params }: { params: Promise<{ lo
             : `${session.clinicName ?? "Clinic"} Dashboard`}
         </h1>
         <p className="text-sm text-muted mt-0.5">
-          {isAr ? "إدارة مرضى وموظفي العيادة" : "Manage your clinic's staff and patients"}
+          {isAr
+            ? "إدارة مرضى وموظفي العيادة"
+            : "Manage your clinic's staff and patients"}
         </p>
       </div>
 
@@ -81,13 +103,42 @@ export default async function DoctorAdminPage({ params }: { params: Promise<{ lo
           label={isAr ? "السكرتيرة" : "Receptionists"}
           value={receptionists.length}
           color="primary"
-          icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>}
+          icon={
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          }
         />
         <StatCard
           label={isAr ? "المرضى" : "Patients"}
           value={patients.length}
           color="success"
-          icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>}
+          icon={
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            </svg>
+          }
         />
       </div>
 
@@ -95,6 +146,21 @@ export default async function DoctorAdminPage({ params }: { params: Promise<{ lo
         patients={patients.map((p) => ({ createdAt: p.createdAt }))}
         monthlyRevenue={monthlyRevenue}
       />
+
+      {/* Salaries Section */}
+      <div className="space-y-3">
+        <div>
+          <h2 className="text-base font-bold text-foreground">
+            {isAr ? "رواتب السكيرتيرات" : "Staff Salaries"}
+          </h2>
+          <p className="text-xs text-muted mt-0.5">
+            {isAr
+              ? "تتبع المتراكم وصرف الرواتب"
+              : "Track accrued amounts and pay salaries"}
+          </p>
+        </div>
+        <SalariesOverview />
+      </div>
     </div>
   );
 }

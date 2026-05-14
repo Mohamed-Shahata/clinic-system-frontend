@@ -208,60 +208,39 @@ export default async function SuperAdminPage({
                 : "No clinics yet. Create the first one."}
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm min-w-[480px]">
-                <thead>
-                  <tr className="border-b border-card-border">
-                    <th className="px-5 py-2.5 text-start text-xs font-medium text-muted uppercase tracking-wide">
-                      {isAr ? "العيادة" : "Clinic"}
-                    </th>
-                    <th className="px-5 py-2.5 text-start text-xs font-medium text-muted uppercase tracking-wide">
-                      {isAr ? "الحالة" : "Status"}
-                    </th>
-                    <th className="px-5 py-2.5 text-start text-xs font-medium text-muted uppercase tracking-wide">
-                      {isAr ? "المعرّف" : "Slug"}
-                    </th>
-                    <th className="px-5 py-2.5 text-end text-xs font-medium text-muted uppercase tracking-wide">
-                      {isAr ? "الطاقم" : "Staff"}
-                    </th>
-                    <th className="px-5 py-2.5 text-end text-xs font-medium text-muted uppercase tracking-wide">
-                      {isAr ? "المرضى" : "Patients"}
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clinics.slice(0, 5).map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-b border-card-border last:border-0 hover:bg-surface-2 transition-colors"
-                    >
-                      <td className="px-5 py-3 font-medium text-foreground">
-                        {c.name}
-                      </td>
-                      <td className="px-5 py-3">
-                        <Badge variant={c.isActive ? "success" : "danger"}>
-                          {c.isActive
-                            ? isAr
-                              ? "نشطة"
-                              : "Active"
-                            : isAr
-                              ? "موقوفة"
-                              : "Suspended"}
-                        </Badge>
-                      </td>
-                      <td className="px-5 py-3 font-mono text-muted text-xs">
-                        {c.slug}
-                      </td>
-                      <td className="px-5 py-3 text-end text-foreground">
-                        {c._count.clinicUsers}
-                      </td>
-                      <td className="px-5 py-3 text-end text-foreground">
-                        {c._count.patients}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-card-border">
+              {clinics.slice(0, 5).map((c) => (
+                <div
+                  key={c.id}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-surface-2 transition-colors"
+                >
+                  {/* Avatar */}
+                  <div className="h-8 w-8 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                    {c.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {c.name}
+                    </p>
+                    <p className="text-xs text-muted font-mono">{c.slug}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-xs text-muted">
+                      {c._count.clinicUsers} {isAr ? "موظف" : "staff"} ·{" "}
+                      {c._count.patients} {isAr ? "مريض" : "pts"}
+                    </span>
+                    <Badge variant={c.isActive ? "success" : "danger"}>
+                      {c.isActive
+                        ? isAr
+                          ? "نشطة"
+                          : "Active"
+                        : isAr
+                          ? "موقوفة"
+                          : "Off"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </CardBody>

@@ -1,5 +1,7 @@
 "use client";
 
+// @ts-ignore
+import { InstallmentsClient } from "@/components/dashboard/installments-client";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -996,7 +998,9 @@ export function WorkspaceClientPage({
                           <p className="text-sm font-semibold text-foreground">
                             {L.optionalFile}
                           </p>
-                          <span className={`text-xs font-medium tabular-nums px-1.5 py-0.5 rounded-full ${uploadFiles.length >= MAX_UPLOAD_FILES ? "bg-danger/10 text-danger" : "bg-surface-2 text-muted"}`}>
+                          <span
+                            className={`text-xs font-medium tabular-nums px-1.5 py-0.5 rounded-full ${uploadFiles.length >= MAX_UPLOAD_FILES ? "bg-danger/10 text-danger" : "bg-surface-2 text-muted"}`}
+                          >
                             {uploadFiles.length}/{MAX_UPLOAD_FILES}
                           </span>
                         </div>
@@ -1004,9 +1008,22 @@ export function WorkspaceClientPage({
                           {L.optionalFileHint}
                         </p>
                       </div>
-                      <label className={`shrink-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${uploadFiles.length >= MAX_UPLOAD_FILES ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-50 pointer-events-none" : "border-border bg-surface text-foreground hover:bg-surface-2"}`}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                      <label
+                        className={`shrink-0 inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${uploadFiles.length >= MAX_UPLOAD_FILES ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-50 pointer-events-none" : "border-border bg-surface text-foreground hover:bg-surface-2"}`}
+                      >
+                        <svg
+                          width="13"
+                          height="13"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
                         </svg>
                         {isAr ? "إضافة ملفات" : "Add Files"}
                         <input
@@ -1050,10 +1067,21 @@ export function WorkspaceClientPage({
                               />
                             ) : (
                               <div className="flex h-16 flex-col items-center justify-center gap-1 bg-surface-2">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted">
-                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+                                <svg
+                                  width="18"
+                                  height="18"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                  className="text-muted"
+                                >
+                                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                                  <polyline points="14 2 14 8 20 8" />
                                 </svg>
-                                <span className="text-[9px] font-bold text-muted uppercase">PDF</span>
+                                <span className="text-[9px] font-bold text-muted uppercase">
+                                  PDF
+                                </span>
                               </div>
                             )}
                             {/* File name */}
@@ -1062,7 +1090,9 @@ export function WorkspaceClientPage({
                                 {item.file.name}
                               </p>
                               {item.error ? (
-                                <p className="text-[9px] text-danger leading-tight mt-0.5">{isAr ? "غير مدعوم" : "Invalid"}</p>
+                                <p className="text-[9px] text-danger leading-tight mt-0.5">
+                                  {isAr ? "غير مدعوم" : "Invalid"}
+                                </p>
                               ) : (
                                 <p className="text-[9px] text-muted leading-tight mt-0.5">
                                   {(item.file.size / 1024).toFixed(0)} KB
@@ -1072,21 +1102,50 @@ export function WorkspaceClientPage({
                           </div>
                         ))}
                         {/* Empty slots */}
-                        {uploadFiles.length < MAX_UPLOAD_FILES && Array.from({ length: MAX_UPLOAD_FILES - uploadFiles.length }).map((_, i) => (
-                          <div key={`empty-${i}`} className="h-[calc(64px+36px)] rounded-lg border border-dashed border-border/40 bg-surface-2/30" />
-                        ))}
+                        {uploadFiles.length < MAX_UPLOAD_FILES &&
+                          Array.from({
+                            length: MAX_UPLOAD_FILES - uploadFiles.length,
+                          }).map((_, i) => (
+                            <div
+                              key={`empty-${i}`}
+                              className="h-[calc(64px+36px)] rounded-lg border border-dashed border-border/40 bg-surface-2/30"
+                            />
+                          ))}
                       </div>
                     ) : (
                       <div className="flex flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border/40 py-6 text-center">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted/50">
-                          <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                        <svg
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          className="text-muted/50"
+                        >
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
                         </svg>
                         <p className="text-xs text-muted">
-                          {isAr ? `اختر حتى ${MAX_UPLOAD_FILES} ملفات (صور أو PDF)` : `Choose up to ${MAX_UPLOAD_FILES} files (images or PDF)`}
+                          {isAr
+                            ? `اختر حتى ${MAX_UPLOAD_FILES} ملفات (صور أو PDF)`
+                            : `Choose up to ${MAX_UPLOAD_FILES} files (images or PDF)`}
                         </p>
                       </div>
                     )}
                   </div>
+
+                  {/* Installments for active patient */}
+                  {activeItem && (
+                    <div className="border-t border-border pt-4">
+                      <InstallmentsClient
+                        patientId={activeItem.patient.id}
+                        patientName={activeItem.patient.fullName}
+                        showCreate={true}
+                      />
+                    </div>
+                  )}
 
                   {/* Action buttons */}
                   <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-border">
