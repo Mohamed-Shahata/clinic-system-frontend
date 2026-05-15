@@ -6,6 +6,8 @@ import { CreateReceptionistButton } from "@/components/dashboard/create-buttons"
 import { AppearanceSettings } from "@/components/dashboard/appearance-settings";
 import { DoctorPaymentForm } from "@/components/dashboard/doctor-payment-form";
 import { SubscriptionTimer } from "@/components/dashboard/subscription-timer";
+import { ServiceCatalogSettings } from "@/components/dashboard/service-catalog-settings";
+import { SalariesOverview } from "@/components/dashboard/salaries-overview";
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -63,7 +65,8 @@ export default async function SettingsPage({
     session.clinicId ? fetchClinicSettings(session.clinicId, token) : null,
     fetchDoctors(token),
   ]);
-  const currentDoctor = doctors.find((doctor) => doctor.id === session.userId) ?? doctors[0];
+  const currentDoctor =
+    doctors.find((doctor) => doctor.id === session.userId) ?? doctors[0];
 
   const clinic =
     session.clinicName && session.clinicSlug
@@ -84,6 +87,10 @@ export default async function SettingsPage({
       </div>
       <div className="space-y-6">
         {/* Subscription Timer */}
+        <ServiceCatalogSettings />
+
+        <SalariesOverview />
+
         <SubscriptionTimer />
 
         {/* Appearance */}
@@ -113,7 +120,9 @@ export default async function SettingsPage({
         {currentDoctor ? (
           <div className="rounded-lg border border-card-border bg-card p-4">
             <h2 className="text-sm font-semibold text-foreground">
-              {isAr ? "أسعار الكشف والمتابعة" : "Consultation and follow-up prices"}
+              {isAr
+                ? "أسعار الكشف والمتابعة"
+                : "Consultation and follow-up prices"}
             </h2>
             <div className="mt-3">
               <DoctorPaymentForm
