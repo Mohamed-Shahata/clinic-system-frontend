@@ -2,7 +2,14 @@
 
 import { useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
-import { Button, Input, Card, CardBody, CardHeader, Alert } from "@/components/ui";
+import {
+  Button,
+  Input,
+  Card,
+  CardBody,
+  CardHeader,
+  Alert,
+} from "@/components/ui";
 
 interface CreatedPatient {
   id: string;
@@ -19,8 +26,21 @@ function getTodayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** يتحقق من أن الاسم ثلاثي على الأقل (3 أجزاء، كل جزء حرفان فأكثر) */
+function isTripleName(name: string): boolean {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.length >= 3 && parts.every((p) => p.length >= 2);
+}
+
 function patientErrorMessage(message: unknown, isAr: boolean) {
-  const text = Array.isArray(message) ? message.join(" ") : String(message ?? "");
+  const text = Array.isArray(message)
+    ? message.join(" ")
+    : String(message ?? "");
+  if (text.includes("ثلاثي") || text.includes("isTripleName")) {
+    return isAr
+      ? "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)"
+      : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)";
+  }
   if (text.includes("code") || text.includes("^[A-Za-z0-9_-]+$")) {
     return isAr
       ? "كود المريض مطلوب ويجب أن يكون من 2 إلى 32 حرفًا أو رقمًا فقط"
@@ -28,6 +48,11 @@ function patientErrorMessage(message: unknown, isAr: boolean) {
   }
   if (text.includes("dateOfBirth")) {
     return isAr ? "تاريخ الميلاد غير صالح" : "Date of birth is invalid";
+  }
+  if (text.includes("phone") || text.includes("هاتف")) {
+    return isAr
+      ? "رقم الهاتف مطلوب وغير صالح"
+      : "A valid phone number is required";
   }
   return typeof message === "string" && message
     ? message
@@ -49,6 +74,7 @@ export function CreatePatientForm({
   const isAr = params?.locale === "ar";
   const today = getTodayInputValue();
   const [fullName, setFullName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
   const [code, setCode] = useState(generateCode());
   const [phone, setPhone] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -57,10 +83,39 @@ export function CreatePatientForm({
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<CreatedPatient | null>(null);
 
+  function validateName(value: string) {
+    if (!isTripleName(value)) {
+      setNameError(
+        isAr
+          ? "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)"
+          : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
+      );
+    } else {
+      setNameError(null);
+    }
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setCreated(null);
+
+    // Client-side triple name validation
+    if (!isTripleName(fullName)) {
+      setNameError(
+        isAr
+          ? "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)"
+          : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
+      );
+      return;
+    }
+
+    // Phone required client-side
+    if (!phone.trim()) {
+      setError(isAr ? "رقم الهاتف مطلوب" : "Phone number is required");
+      return;
+    }
+
     if (dateOfBirth && dateOfBirth > today) {
       setError(
         isAr
@@ -77,14 +132,17 @@ export function CreatePatientForm({
         body: JSON.stringify({
           code,
           fullName: fullName.trim(),
-          phone: phone.trim() || undefined,
+          phone: phone.trim(),
           dateOfBirth: dateOfBirth || undefined,
           medicalNotes: allowMedicalNotes
             ? medicalNotes.trim() || undefined
             : undefined,
         }),
       });
-      const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      const data = (await res.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
       if (!res.ok) {
         setError(patientErrorMessage(data.message, isAr));
         return;
@@ -95,6 +153,7 @@ export function CreatePatientForm({
       setDateOfBirth("");
       setMedicalNotes("");
       setCode(generateCode());
+      setNameError(null);
       onSuccess?.();
     } finally {
       setPending(false);
@@ -104,22 +163,32 @@ export function CreatePatientForm({
   return (
     <Card>
       <CardHeader>
-        <h2 className="text-sm font-semibold text-foreground">Register Patient</h2>
-        <p className="text-xs text-muted mt-0.5">Add a new patient to the clinic</p>
+        <h2 className="text-sm font-semibold text-foreground">
+          {isAr ? "تسجيل مريض جديد" : "Register Patient"}
+        </h2>
+        <p className="text-xs text-muted mt-0.5">
+          {isAr
+            ? "أضف مريضاً جديداً في العيادة"
+            : "Add a new patient to the clinic"}
+        </p>
       </CardHeader>
       <CardBody>
         <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
           <div className="flex items-end gap-2">
             <div className="flex-1">
               <Input
-                label="Patient Code"
+                label={isAr ? "كود المريض" : "Patient Code"}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 required
                 minLength={2}
                 maxLength={32}
                 pattern="[A-Za-z0-9_-]+"
-                hint="Auto-generated — can be edited"
+                hint={
+                  isAr
+                    ? "تلقائي — يمكن تعديله"
+                    : "Auto-generated — can be edited"
+                }
               />
             </div>
             <Button
@@ -133,36 +202,53 @@ export function CreatePatientForm({
             </Button>
           </div>
 
+          <div className="space-y-1">
+            <Input
+              label={isAr ? "الاسم الثلاثي *" : "Full Name (3 words min) *"}
+              placeholder={isAr ? "محمد علي حسن" : "Mohamed Ali Hassan"}
+              required
+              minLength={6}
+              value={fullName}
+              onChange={(e) => {
+                setFullName(e.target.value);
+                if (nameError) validateName(e.target.value);
+              }}
+              onBlur={() => validateName(fullName)}
+            />
+            {nameError && <p className="text-xs text-danger">{nameError}</p>}
+          </div>
+
           <Input
-            label="Full Name"
-            placeholder="Mohamed Ali Hassan"
-            required
-            minLength={2}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          />
-          <Input
-            label="Phone Number"
+            label={isAr ? "رقم الهاتف *" : "Phone Number *"}
             type="tel"
             placeholder="+20 10x xxxx xxxx"
+            required
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
+
           <Input
-            label="Date of Birth"
+            label={isAr ? "تاريخ الميلاد" : "Date of Birth"}
             type="date"
             value={dateOfBirth}
             max={today}
             onChange={(e) => setDateOfBirth(e.target.value)}
           />
+
           {allowMedicalNotes && (
             <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-foreground">Medical Notes</label>
+              <label className="block text-sm font-medium text-foreground">
+                {isAr ? "ملاحظات طبية" : "Medical Notes"}
+              </label>
               <textarea
                 value={medicalNotes}
                 onChange={(e) => setMedicalNotes(e.target.value)}
                 rows={3}
-                placeholder="Allergies, chronic conditions, notes..."
+                placeholder={
+                  isAr
+                    ? "حساسية، أمراض مزمنة، ملاحظات..."
+                    : "Allergies, chronic conditions, notes..."
+                }
                 className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted outline-none ring-primary/30 focus:ring-2 resize-none"
               />
             </div>
@@ -172,18 +258,22 @@ export function CreatePatientForm({
           {created && (
             <Alert variant="success">
               <div>
-                <p className="font-medium">Patient registered!</p>
-                <p className="text-xs font-mono mt-0.5">{created.code} · {created.fullName}</p>
+                <p className="font-medium">
+                  {isAr ? "تم تسجيل المريض!" : "Patient registered!"}
+                </p>
+                <p className="text-xs font-mono mt-0.5">
+                  {created.code} · {created.fullName}
+                </p>
               </div>
             </Alert>
           )}
 
           <div className="flex items-center justify-end gap-2">
             <Button type="button" variant="secondary" onClick={onCancel}>
-              Cancel
+              {isAr ? "إلغاء" : "Cancel"}
             </Button>
             <Button type="submit" loading={pending}>
-              Register Patient
+              {isAr ? "تسجيل المريض" : "Register Patient"}
             </Button>
           </div>
         </form>

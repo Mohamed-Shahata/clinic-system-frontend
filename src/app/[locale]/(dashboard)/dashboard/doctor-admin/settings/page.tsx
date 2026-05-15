@@ -6,7 +6,6 @@ import { CreateReceptionistButton } from "@/components/dashboard/create-buttons"
 import { AppearanceSettings } from "@/components/dashboard/appearance-settings";
 import { DoctorPaymentForm } from "@/components/dashboard/doctor-payment-form";
 import { SubscriptionTimer } from "@/components/dashboard/subscription-timer";
-import { ServiceCatalogSettings } from "@/components/dashboard/service-catalog-settings";
 import { SalariesOverview } from "@/components/dashboard/salaries-overview";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -86,9 +85,6 @@ export default async function SettingsPage({
         </p>
       </div>
       <div className="space-y-6">
-        {/* Subscription Timer */}
-        <ServiceCatalogSettings />
-
         <SalariesOverview />
 
         <SubscriptionTimer />
@@ -113,6 +109,12 @@ export default async function SettingsPage({
               className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground hover:bg-surface-2"
             >
               {isAr ? "صفحة الاشتراك" : "Subscription page"}
+            </Link>
+            <Link
+              href={`/${locale}/dashboard/doctor-admin/services`}
+              className="inline-flex items-center rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground hover:bg-surface-2"
+            >
+              {isAr ? "الخدمات والأسعار" : "Services & Pricing"}
             </Link>
           </div>
         </div>

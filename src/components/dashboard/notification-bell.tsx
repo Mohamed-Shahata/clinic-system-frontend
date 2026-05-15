@@ -79,16 +79,24 @@ export function NotificationBell({ locale }: Props) {
     events.onerror = () => {
       events.close();
     };
-    const interval = setInterval(() => void fetchNotifs(), 120000);
+    // Poll every 5 minutes as fallback (reduced from 2 min to avoid 429s)
+    const interval = setInterval(() => void fetchNotifs(), 300000);
+    // Only refetch on visibility restore if hidden for >60 seconds
+    let hiddenAt: number | null = null;
     function onVisibilityChange() {
-      if (document.visibilityState === "visible") void fetchNotifs();
+      if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
+      } else if (document.visibilityState === "visible") {
+        if (hiddenAt !== null && Date.now() - hiddenAt > 60000) {
+          void fetchNotifs();
+        }
+        hiddenAt = null;
+      }
     }
-    window.addEventListener("focus", fetchNotifs);
     document.addEventListener("visibilitychange", onVisibilityChange);
     return () => {
       events.close();
       clearInterval(interval);
-      window.removeEventListener("focus", fetchNotifs);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
   }, [fetchNotifs]);

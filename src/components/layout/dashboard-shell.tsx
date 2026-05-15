@@ -102,6 +102,30 @@ export function DashboardShell({
               </svg>
             </button>
 
+            {/* Desktop sidebar toggle — visible on md+ when sidebar is collapsed */}
+            {!open && (
+              <button
+                type="button"
+                aria-label={isAr ? "فتح القائمة الجانبية" : "Open sidebar"}
+                onClick={() => setOpen(true)}
+                className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-lg text-foreground hover:bg-surface-2 transition-colors"
+              >
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+              </button>
+            )}
+
             {/* Mobile mini logo */}
             <div className="md:hidden h-6 w-6 rounded-md bg-primary flex items-center justify-center">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="white">

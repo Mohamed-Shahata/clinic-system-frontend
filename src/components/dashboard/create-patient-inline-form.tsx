@@ -14,17 +14,33 @@ function generatePatientCode() {
   return "PT-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
+/** يتحقق من أن الاسم ثلاثي على الأقل */
+function isTripleName(name: string): boolean {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.length >= 3 && parts.every((p) => p.length >= 2);
+}
+
 function patientErrorMessage(message: unknown, isAr: boolean) {
-  const text = Array.isArray(message) ? message.join(" ") : String(message ?? "");
+  const text = Array.isArray(message)
+    ? message.join(" ")
+    : String(message ?? "");
+  if (text.includes("ثلاثي") || text.includes("isTripleName")) {
+    return isAr
+      ? "الاسم يجب أن يكون ثلاثياً (مثال: محمد علي حسن)"
+      : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)";
+  }
   if (text.includes("code") || text.includes("^[A-Za-z0-9_-]+$")) {
     return isAr
       ? "كود المريض مطلوب ويجب أن يكون من 2 إلى 32 حرفًا أو رقمًا فقط"
       : "Patient code is required and must be 2-32 letters, numbers, underscores, or hyphens";
   }
   if (text.includes("dateOfBirth")) {
+    return isAr ? "تاريخ الميلاد غير صالح" : "Date of birth is invalid";
+  }
+  if (text.includes("phone") || text.includes("هاتف")) {
     return isAr
-      ? "تاريخ الميلاد غير صالح"
-      : "Date of birth is invalid";
+      ? "رقم الهاتف مطلوب وغير صالح"
+      : "A valid phone number is required";
   }
   return typeof message === "string" && message
     ? message
@@ -44,18 +60,42 @@ export function CreatePatientInlineForm({
 }) {
   const isAr = locale === "ar";
   const [fullName, setFullName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
   const [code, setCode] = useState(generatePatientCode);
   const [phone, setPhone] = useState("");
   const [age, setAge] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function validateName(value: string) {
+    if (!isTripleName(value)) {
+      setNameError(
+        isAr
+          ? "الاسم يجب أن يكون ثلاثياً (مثال: محمد علي حسن)"
+          : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
+      );
+    } else {
+      setNameError(null);
+    }
+  }
+
   async function submit() {
     setError(null);
-    if (!fullName.trim()) {
-      setError(isAr ? "يرجى إدخال الاسم" : "Please enter a name");
+
+    if (!fullName.trim() || !isTripleName(fullName)) {
+      setNameError(
+        isAr
+          ? "الاسم يجب أن يكون ثلاثياً (مثال: محمد علي حسن)"
+          : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
+      );
       return;
     }
+
+    if (!phone.trim()) {
+      setError(isAr ? "رقم الهاتف مطلوب" : "Phone number is required");
+      return;
+    }
+
     const parsedAge = age ? Number(age) : null;
     if (
       parsedAge !== null &&
@@ -65,9 +105,7 @@ export function CreatePatientInlineForm({
       return;
     }
     const derivedBirthDate =
-      parsedAge !== null
-        ? `${new Date().getFullYear() - parsedAge}-01-01`
-        : "";
+      parsedAge !== null ? `${new Date().getFullYear() - parsedAge}-01-01` : "";
     setPending(true);
     try {
       const res = await fetch("/api/patients", {
@@ -76,7 +114,7 @@ export function CreatePatientInlineForm({
         body: JSON.stringify({
           code,
           fullName: fullName.trim(),
-          phone: phone.trim() || undefined,
+          phone: phone.trim(),
           dateOfBirth: derivedBirthDate || undefined,
         }),
       });
@@ -90,6 +128,7 @@ export function CreatePatientInlineForm({
       const patient = (await res.json()) as CreatedPatient;
       setCode(generatePatientCode());
       setAge("");
+      setNameError(null);
       onSuccess(patient);
     } finally {
       setPending(false);
@@ -99,12 +138,19 @@ export function CreatePatientInlineForm({
   return (
     <div className="space-y-4">
       {error && <Alert variant="error">{error}</Alert>}
-      <Input
-        label={isAr ? "الاسم الكامل *" : "Full Name *"}
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-        placeholder={isAr ? "اسم المريض" : "Patient name"}
-      />
+      <div className="space-y-1">
+        <Input
+          label={isAr ? "الاسم الثلاثي *" : "Full Name (3 words min) *"}
+          value={fullName}
+          onChange={(e) => {
+            setFullName(e.target.value);
+            if (nameError) validateName(e.target.value);
+          }}
+          onBlur={() => validateName(fullName)}
+          placeholder={isAr ? "محمد علي حسن" : "Mohamed Ali Hassan"}
+        />
+        {nameError && <p className="text-xs text-danger">{nameError}</p>}
+      </div>
       <Input
         label={isAr ? "كود المريض *" : "Patient Code *"}
         value={code}
@@ -115,10 +161,11 @@ export function CreatePatientInlineForm({
         placeholder="PT-ABC123"
       />
       <Input
-        label={isAr ? "رقم الهاتف" : "Phone"}
+        label={isAr ? "رقم الهاتف *" : "Phone *"}
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
-        placeholder={isAr ? "اختياري" : "Optional"}
+        placeholder={isAr ? "01xxxxxxxxx" : "01xxxxxxxxx"}
+        required
       />
       <Input
         label={isAr ? "السن" : "Age"}

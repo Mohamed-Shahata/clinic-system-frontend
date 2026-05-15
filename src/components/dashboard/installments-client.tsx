@@ -111,6 +111,9 @@ export function InstallmentsClient({
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Plan | null>(null);
+  // typed setter for functional updates
+  const setSelectedFn = (fn: (prev: Plan | null) => Plan | null) =>
+    setSelected(fn);
   const [showCreate_, setShowCreate_] = useState(false);
   const [addPaymentPlan, setAddPaymentPlan] = useState<Plan | null>(null);
   const [statusFilter, setStatusFilter] = useState<"all" | InstallmentStatus>(
@@ -180,6 +183,22 @@ export function InstallmentsClient({
 
   const handlePayment = async () => {
     if (!addPaymentPlan || !payAmount) return;
+    const amt = Number(payAmount);
+    if (!amt || amt <= 0) {
+      addToast("error", isAr ? "أدخل مبلغاً صحيحاً" : "Enter a valid amount");
+      return;
+    }
+    const maxAmt =
+      Number(addPaymentPlan.totalAmount) - Number(addPaymentPlan.paidAmount);
+    if (amt > maxAmt) {
+      addToast(
+        "error",
+        isAr
+          ? `الحد الأقصى ${maxAmt.toLocaleString()} EGP`
+          : `Max is ${maxAmt.toLocaleString()} EGP`,
+      );
+      return;
+    }
     setPaying(true);
     try {
       const res = await fetch(
@@ -187,20 +206,40 @@ export function InstallmentsClient({
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            amount: Number(payAmount),
-            note: payNote || undefined,
-          }),
+          body: JSON.stringify({ amount: amt, note: payNote || undefined }),
         },
       );
       if (res.ok) {
-        addToast("success", isAr ? "تم تسجيل الدفعة" : "Payment recorded");
+        const updated = (await res.json()) as Plan;
+        const newPaid = Number(updated.paidAmount);
+        const total = Number(updated.totalAmount);
+        const remaining = total - newPaid;
+        if (updated.status === "PAID") {
+          addToast(
+            "success",
+            isAr
+              ? `✓ تم السداد الكامل — ${total.toLocaleString()} EGP`
+              : `✓ Fully paid — ${total.toLocaleString()} EGP`,
+          );
+        } else {
+          addToast(
+            "success",
+            isAr
+              ? `تم تسجيل الدفعة — متبقي ${remaining.toLocaleString()} EGP`
+              : `Payment saved — remaining ${remaining.toLocaleString()} EGP`,
+          );
+        }
         setAddPaymentPlan(null);
         setPayAmount("");
         setPayNote("");
-        void load();
+        setPlans((prev) =>
+          prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
+        );
+        if (selected?.id === updated.id)
+          setSelectedFn((s) => (s ? { ...s, ...updated } : s));
       } else {
-        addToast("error", isAr ? "حدث خطأ" : "Error occurred");
+        const d = (await res.json().catch(() => ({}))) as { message?: string };
+        addToast("error", d.message ?? (isAr ? "حدث خطأ" : "Error occurred"));
       }
     } finally {
       setPaying(false);

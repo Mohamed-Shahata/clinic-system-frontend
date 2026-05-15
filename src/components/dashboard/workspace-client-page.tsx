@@ -466,21 +466,57 @@ export function WorkspaceClientPage({
       if (saved?.id) setLastSavedPrescriptionId(saved.id);
       if (hasValidUploadFiles) {
         setUploadingFile(true);
-        for (const item of uploadFiles.filter((entry) => !entry.error)) {
-          const formData = new FormData();
-          formData.append("file", item.file);
-          const uploadRes = await fetch(
-            `/api/patients/${activeItem.patient.id}?appointmentId=${activeItem.id}`,
-            { method: "POST", body: formData },
-          );
-          if (!uploadRes.ok) {
-            addToast(
-              "error",
-              isAr
-                ? "تم حفظ الكشف لكن تعذر رفع بعض الملفات"
-                : "Encounter saved, but some files failed to upload",
+        let uploadedCount = 0;
+        let failedCount = 0;
+        const validFiles = uploadFiles.filter((entry) => !entry.error);
+        for (const item of validFiles) {
+          try {
+            const formData = new FormData();
+            formData.append("file", item.file);
+            const uploadRes = await fetch(
+              `/api/patients/${activeItem.patient.id}?appointmentId=${activeItem.id}`,
+              { method: "POST", body: formData },
             );
+            if (uploadRes.ok) {
+              uploadedCount++;
+            } else {
+              const errData = (await uploadRes.json().catch(() => ({}))) as {
+                message?: string;
+              };
+              // Stop if we hit the 5-file limit
+              if (
+                errData.message?.includes("Max 5") ||
+                errData.message?.includes("5 files")
+              ) {
+                addToast(
+                  "error",
+                  isAr
+                    ? "وصلت للحد الأقصى (5 ملفات للمريض)"
+                    : "Max 5 files per patient reached",
+                );
+                break;
+              }
+              failedCount++;
+            }
+          } catch {
+            failedCount++;
           }
+        }
+        if (uploadedCount > 0) {
+          addToast(
+            "success",
+            isAr
+              ? `تم رفع ${uploadedCount} ملف بنجاح`
+              : `${uploadedCount} file(s) uploaded`,
+          );
+        }
+        if (failedCount > 0) {
+          addToast(
+            "error",
+            isAr
+              ? `تعذر رفع ${failedCount} ملف`
+              : `${failedCount} file(s) failed`,
+          );
         }
         setUploadFiles((prev) => {
           prev.forEach((item) => {

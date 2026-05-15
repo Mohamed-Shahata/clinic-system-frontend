@@ -2,7 +2,13 @@
 
 import { useTranslations } from "next-intl";
 import type { SessionClaims } from "@/lib/auth/verify-token";
-import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useTransition,
+  type ReactNode,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutButton } from "@/components/dashboard/logout-button";
 import { BiPhone } from "react-icons/bi";
@@ -110,6 +116,11 @@ export function getNavItems(
           icon: <MoneyIcon />,
         },
         {
+          href: `${base}/doctor-admin/services`,
+          label: t("services"),
+          icon: <ServicesIcon />,
+        },
+        {
           href: `${base}/doctor-admin/settings`,
           label: t("settings"),
           icon: <SettingsIcon />,
@@ -171,7 +182,10 @@ export function SidebarNav({
   const activePath = optimisticPath ?? pathname ?? currentPath;
   const t = useTranslations("dashboard.nav");
   const isAr = locale === "ar";
-  const items = useMemo(() => getNavItems(locale, claims, t), [locale, claims, t]);
+  const items = useMemo(
+    () => getNavItems(locale, claims, t),
+    [locale, claims, t],
+  );
 
   useEffect(() => {
     items.forEach((item) => {
@@ -695,6 +709,24 @@ function FlaskIcon() {
     >
       <path d="M9 3h6M10 3v6l-3.8 9.6A1 1 0 0 0 7.1 21h9.8a1 1 0 0 0 .9-1.4L14 9V3" />
       <path d="M8.5 14h7" />
+    </svg>
+  );
+}
+function ServicesIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+      <rect x="9" y="3" width="6" height="4" rx="1" />
+      <path d="M9 12h6M9 16h4" />
     </svg>
   );
 }
