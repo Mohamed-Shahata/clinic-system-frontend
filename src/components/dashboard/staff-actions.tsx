@@ -34,7 +34,9 @@ export function StaffActions({
   const [details, setDetails] = useState<StaffDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmToggle, setConfirmToggle] = useState(false);
 
   async function load() {
     setOpen(true);
@@ -42,7 +44,14 @@ export function StaffActions({
     const res = await fetch(`/api/users/staff/${userId}`);
     const data = await res.json().catch(() => ({}));
     if (res.ok) setDetails(data as StaffDetails);
-    else setError(typeof data.message === "string" ? data.message : isAr ? "تعذر تحميل بيانات الموظف" : "Could not load staff details");
+    else
+      setError(
+        typeof data.message === "string"
+          ? data.message
+          : isAr
+            ? "تعذر تحميل بيانات الموظف"
+            : "Could not load staff details",
+      );
   }
 
   async function remove() {
@@ -52,13 +61,48 @@ export function StaffActions({
     }
     setPending(true);
     try {
-      const res = await fetch(`/api/users/staff/${userId}`, { method: "DELETE" });
+      const res = await fetch(`/api/users/staff/${userId}`, {
+        method: "DELETE",
+      });
       if (res.ok) router.refresh();
     } finally {
       setPending(false);
       setConfirmDelete(false);
     }
   }
+
+  async function toggleActive() {
+    if (!details) return;
+    setToggling(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/users/staff/${userId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !details.isActive }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setDetails((prev) =>
+          prev ? { ...prev, isActive: !prev.isActive } : prev,
+        );
+        setConfirmToggle(false);
+        router.refresh();
+      } else {
+        setError(
+          typeof data.message === "string"
+            ? data.message
+            : isAr
+              ? "تعذر تغيير حالة الموظف"
+              : "Could not update staff status",
+        );
+      }
+    } finally {
+      setToggling(false);
+    }
+  }
+
+  const isSelf = userId === currentUserId;
 
   return (
     <>
@@ -72,11 +116,13 @@ export function StaffActions({
           size="sm"
           loading={pending}
           onClick={() => setConfirmDelete(true)}
-          disabled={userId === currentUserId}
+          disabled={isSelf}
         >
           {isAr ? "حذف" : "Delete"}
         </Button>
       </div>
+
+      {/* ── Details Modal ─────────────────────────────────────────────── */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-lg border border-card-border bg-card p-5 shadow-card-md">
@@ -84,30 +130,129 @@ export function StaffActions({
               <h2 className="text-sm font-semibold text-foreground">
                 {isAr ? "بيانات الموظف" : "Staff Details"}
               </h2>
-              <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setOpen(false);
+                  setConfirmToggle(false);
+                  setError(null);
+                }}
+              >
                 {isAr ? "إغلاق" : "Close"}
               </Button>
             </div>
+
             {error && <Alert variant="error">{error}</Alert>}
+
             {details && (
-              <div className="space-y-3 text-sm">
-                {details.avatarUrl && <img src={details.avatarUrl} alt="" className="h-16 w-16 rounded object-cover" />}
-                <p className="font-medium text-foreground">{details.fullName}</p>
-                <p className="text-muted">{details.email ?? (isAr ? "لا يوجد بريد إلكتروني" : "No email")}</p>
-                <p className="text-muted">{details.phone ?? (isAr ? "لا يوجد هاتف" : "No phone")}</p>
-                <div className="flex gap-2">
+              <div className="space-y-4 text-sm">
+                {details.avatarUrl && (
+                  <img
+                    src={details.avatarUrl}
+                    alt=""
+                    className="h-16 w-16 rounded object-cover"
+                  />
+                )}
+
+                <div>
+                  <p className="font-medium text-foreground">
+                    {details.fullName}
+                  </p>
+                  <p className="text-muted text-xs mt-0.5">
+                    {details.email ??
+                      (isAr ? "لا يوجد بريد إلكتروني" : "No email")}
+                  </p>
+                  {details.phone && (
+                    <p className="text-muted text-xs font-mono">
+                      {details.phone}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
                   <Badge>{roleLabel(details.role, locale)}</Badge>
                   <Badge variant={details.isActive ? "success" : "danger"}>
-                    {details.isActive ? (isAr ? "نشط" : "Active") : (isAr ? "غير نشط" : "Inactive")}
+                    {details.isActive
+                      ? isAr
+                        ? "نشط"
+                        : "Active"
+                      : isAr
+                        ? "غير نشط"
+                        : "Inactive"}
                   </Badge>
                 </div>
-                {details.specialty && <p className="text-muted">{details.specialty}</p>}
-                <p className="text-xs text-muted">{new Date(details.createdAt).toLocaleDateString()}</p>
+
+                {details.specialty && (
+                  <p className="text-muted">{details.specialty}</p>
+                )}
+                <p className="text-xs text-muted">
+                  {new Date(details.createdAt).toLocaleDateString()}
+                </p>
+
+                {/* ── Toggle activation ────────────────────────────── */}
+                {!isSelf && (
+                  <div className="border-t border-card-border pt-4">
+                    {!confirmToggle ? (
+                      <Button
+                        type="button"
+                        variant={details.isActive ? "danger" : "primary"}
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setConfirmToggle(true)}
+                      >
+                        {details.isActive
+                          ? isAr
+                            ? "إلغاء تفعيل الحساب"
+                            : "Deactivate Account"
+                          : isAr
+                            ? "تفعيل الحساب"
+                            : "Activate Account"}
+                      </Button>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-xs text-muted text-center">
+                          {details.isActive
+                            ? isAr
+                              ? `سيتم تسجيل خروج ${details.fullName} فوراً ولن يتمكن من الدخول حتى تعيد تفعيله.`
+                              : `${details.fullName} will be logged out immediately and cannot log in until reactivated.`
+                            : isAr
+                              ? `سيتمكن ${details.fullName} من الدخول للنظام مجدداً.`
+                              : `${details.fullName} will be able to log in again.`}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="flex-1"
+                            onClick={() => setConfirmToggle(false)}
+                          >
+                            {isAr ? "إلغاء" : "Cancel"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={details.isActive ? "danger" : "primary"}
+                            size="sm"
+                            className="flex-1"
+                            loading={toggling}
+                            onClick={() => void toggleActive()}
+                          >
+                            {isAr ? "تأكيد" : "Confirm"}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             )}
           </div>
         </div>
       )}
+
+      {/* ── Delete Confirm Modal ──────────────────────────────────────── */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-sm rounded-lg border border-card-border bg-card p-5 shadow-card-md">
@@ -118,10 +263,21 @@ export function StaffActions({
               {isAr ? `هل تريد حذف ${name}؟` : `Delete ${name}?`}
             </p>
             <div className="mt-4 flex justify-end gap-2">
-              <Button type="button" variant="ghost" size="sm" onClick={() => setConfirmDelete(false)}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setConfirmDelete(false)}
+              >
                 {isAr ? "إلغاء" : "Cancel"}
               </Button>
-              <Button type="button" variant="danger" size="sm" loading={pending} onClick={() => void remove()}>
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                loading={pending}
+                onClick={() => void remove()}
+              >
                 {isAr ? "حذف" : "Delete"}
               </Button>
             </div>

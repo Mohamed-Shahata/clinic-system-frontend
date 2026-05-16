@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { verifyAccessToken } from "@/lib/auth/verify-token";
+import { getBackendBaseUrl } from "@/lib/backend-url";
 
+/**
+ * GET /api/auth/me
+ * Proxies to backend /api/auth/me so the backend JWT strategy runs its
+ * revocation checks (isUserRevoked, isClinicRevoked). If the user was
+ * deactivated mid-session the backend returns 401 and the TokenRefresher
+ * will redirect to /login.
+ */
 export async function GET() {
   const jar = await cookies();
   const token = jar.get("access_token")?.value;
@@ -10,17 +17,18 @@ export async function GET() {
   }
 
   try {
-    const claims = await verifyAccessToken(token);
-    return NextResponse.json({
-      email: typeof claims.email === "string" ? claims.email : null,
-      isSuperAdmin: claims.isSuperAdmin === true,
-      role: typeof claims.role === "string" ? claims.role : null,
-      clinicId: typeof claims.clinicId === "string" ? claims.clinicId : null,
-      clinicSlug: typeof claims.clinicSlug === "string" ? claims.clinicSlug : null,
-      clinicName: typeof claims.clinicName === "string" ? claims.clinicName : null,
-      sub: typeof claims.sub === "string" ? claims.sub : null,
+    const res = await fetch(`${getBackendBaseUrl()}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
     });
+
+    if (!res.ok) {
+      return NextResponse.json(null, { status: res.status });
+    }
+
+    const data = await res.json().catch(() => null);
+    return NextResponse.json(data);
   } catch {
-    return NextResponse.json(null, { status: 401 });
+    return NextResponse.json(null, { status: 502 });
   }
 }

@@ -48,6 +48,19 @@ export default function LoginPage() {
     const text = typeof message === "string" ? message : "";
     const fallback = isAr ? "بيانات الدخول غير صحيحة" : "Invalid credentials";
 
+    // Handle prefixed deactivation errors from backend (format: "code:message")
+    if (text.startsWith("account_deactivated:")) {
+      const msg = text.replace("account_deactivated:", "").trim();
+      return isAr
+        ? msg || "تم إلغاء تفعيل حسابك. تواصل مع الدكتور المسؤول."
+        : "Your account has been deactivated. Please contact the clinic administrator.";
+    }
+    if (text.startsWith("clinic_deactivated:")) {
+      return isAr
+        ? "العيادة موقوفة مؤقتاً. تواصل مع الإدارة."
+        : "This clinic is currently suspended. Please contact support.";
+    }
+
     const dictionary: Record<string, { ar: string; en: string }> = {
       "Invalid credentials": {
         ar: "بيانات الدخول غير صحيحة",
@@ -66,6 +79,10 @@ export default function LoginPage() {
           ar: "هذا الحساب مرتبط بأكثر من عيادة. اطلب رمز العيادة من المسؤول.",
           en: "This account is linked to multiple clinics. Ask your administrator for your clinic code.",
         },
+      "Session revoked": {
+        ar: "تم إنهاء جلستك. سجّل الدخول مجدداً.",
+        en: "Your session has been ended. Please log in again.",
+      },
     };
 
     if (dictionary[text]) return dictionary[text][isAr ? "ar" : "en"];
