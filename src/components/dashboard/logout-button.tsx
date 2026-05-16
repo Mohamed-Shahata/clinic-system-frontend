@@ -14,6 +14,7 @@ function LogoutModal({
   onCancel,
   pending,
   copy,
+  isAr,
 }: {
   onConfirm: () => void;
   onCancel: () => void;
@@ -24,22 +25,27 @@ function LogoutModal({
     cancel: string;
     title: string;
   };
+  isAr: boolean;
 }) {
-  // Render into document.body via portal so it's always centered on screen
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4">
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-4"
+      dir={isAr ? "rtl" : "ltr"}
+    >
       <div className="w-full max-w-sm rounded-lg border border-card-border bg-card p-5 text-foreground shadow-card-md">
-        <h2 className="text-sm font-semibold">{copy.confirmTitle}</h2>
-        <p className="mt-2 text-sm text-muted">{copy.confirmBody}</p>
+        <h2 className="text-sm font-semibold text-start">
+          {copy.confirmTitle}
+        </h2>
+        <p className="mt-2 text-sm text-muted text-start">{copy.confirmBody}</p>
         <div className="mt-4 flex justify-end gap-2">
           <button
-            className="rounded px-3 py-2 text-sm hover:bg-surface-2"
+            className="rounded px-3 py-2 text-sm hover:bg-surface-2 transition-colors"
             onClick={onCancel}
           >
             {copy.cancel}
           </button>
           <button
-            className="rounded bg-danger px-3 py-2 text-sm text-white disabled:opacity-60"
+            className="rounded bg-danger px-3 py-2 text-sm text-white disabled:opacity-60 transition-opacity"
             onClick={onConfirm}
             disabled={pending}
           >
@@ -84,8 +90,28 @@ export function LogoutButton({ locale, label, iconOnly }: LogoutButtonProps) {
         onCancel={() => setConfirming(false)}
         pending={pending}
         copy={copy}
+        isAr={isAr}
       />
     ) : null;
+
+  const icon = (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      /* flip the arrow direction for RTL */
+      style={isAr ? { transform: "scaleX(-1)" } : undefined}
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" x2="9" y1="12" y2="12" />
+    </svg>
+  );
 
   if (iconOnly) {
     return (
@@ -96,20 +122,7 @@ export function LogoutButton({ locale, label, iconOnly }: LogoutButtonProps) {
           title={copy.title}
           className="flex h-7 w-7 items-center justify-center rounded text-sidebar-fg hover:bg-sidebar-hover hover:text-white transition-colors disabled:opacity-50"
         >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" x2="9" y1="12" y2="12" />
-          </svg>
+          {icon}
         </button>
         {modal}
       </>
@@ -121,23 +134,11 @@ export function LogoutButton({ locale, label, iconOnly }: LogoutButtonProps) {
       <button
         onClick={() => setConfirming(true)}
         disabled={pending}
+        dir={isAr ? "rtl" : "ltr"}
         className="inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-sm text-muted hover:bg-surface-2 hover:text-foreground transition-colors disabled:opacity-50"
       >
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" x2="9" y1="12" y2="12" />
-        </svg>
-        {pending ? copy.pending : label || copy.title}
+        {icon}
+        <span>{pending ? copy.pending : label || copy.title}</span>
       </button>
       {modal}
     </>

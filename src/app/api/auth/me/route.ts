@@ -4,16 +4,17 @@ import { getBackendBaseUrl } from "@/lib/backend-url";
 
 /**
  * GET /api/auth/me
- * Proxies to backend /api/auth/me so the backend JWT strategy runs its
- * revocation checks (isUserRevoked, isClinicRevoked). If the user was
- * deactivated mid-session the backend returns 401 and the TokenRefresher
- * will redirect to /login.
+ * Returns { revoked: true } when backend says "Session revoked" (user/clinic deactivated).
+ * Returns 401 with { revoked: false } when token is simply missing/expired.
+ * TokenRefresher only redirects to login when revoked=true.
  */
 export async function GET() {
   const jar = await cookies();
   const token = jar.get("access_token")?.value;
+
   if (!token) {
-    return NextResponse.json(null, { status: 401 });
+    // No token at all — normal state before refresh cycle kicks in
+    return NextResponse.json({ revoked: false }, { status: 200 });
   }
 
   try {
@@ -22,13 +23,23 @@ export async function GET() {
       cache: "no-store",
     });
 
+    if (res.status === 401) {
+      const body = (await res.json().catch(() => ({}))) as { message?: string };
+      const isRevoked =
+        body.message === "Session revoked" ||
+        body.message?.toLowerCase().includes("revoked") ||
+        body.message?.toLowerCase().includes("deactivated");
+      return NextResponse.json({ revoked: isRevoked }, { status: 401 });
+    }
+
     if (!res.ok) {
-      return NextResponse.json(null, { status: res.status });
+      return NextResponse.json({ revoked: false }, { status: 200 });
     }
 
     const data = await res.json().catch(() => null);
-    return NextResponse.json(data);
+    return NextResponse.json({ revoked: false, user: data });
   } catch {
-    return NextResponse.json(null, { status: 502 });
+    // Network issue — don't logout on network errors
+    return NextResponse.json({ revoked: false }, { status: 200 });
   }
 }
