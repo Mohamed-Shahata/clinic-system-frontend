@@ -578,10 +578,7 @@ export function BillingClientPage({
         </CardHeader>
         <CardBody className="p-0">
           {paged.length === 0 ? (
-            <EmptyState
-              title={isAr ? "لا توجد فواتير" : "No invoices"}
-              className="py-10"
-            />
+            <EmptyState title={isAr ? "لا توجد فواتير" : "No invoices"} />
           ) : (
             <div className="divide-y divide-border">
               {paged.map((inv) => {
