@@ -8,7 +8,12 @@ export async function POST() {
     const refreshToken = jar.get("refresh_token")?.value;
 
     if (!refreshToken) {
-      return NextResponse.json({ message: "No refresh token" }, { status: 401 });
+      // No refresh token stored — session was never created or already cleared manually.
+      // Do NOT touch any cookie; let middleware handle the redirect.
+      return NextResponse.json(
+        { message: "No refresh token" },
+        { status: 401 },
+      );
     }
 
     const res = await fetch(`${getBackendBaseUrl()}/api/auth/refresh`, {
@@ -19,23 +24,31 @@ export async function POST() {
     });
 
     if (!res.ok) {
-      const response = NextResponse.json({ message: "Session expired" }, { status: 401 });
-      const cookieOpts = { httpOnly: true, sameSite: "strict" as const, secure: process.env.NODE_ENV === "production", path: "/", maxAge: 0 };
-      response.cookies.set("access_token", "", cookieOpts);
-      response.cookies.set("refresh_token", "", cookieOpts);
-      return response;
+      // ❌ NEVER clear cookies here.
+      // A transient failure (network blip, Redis restart, 429, 5xx) would log the user out
+      // permanently even though their session is still valid.
+      // TokenRefresher will retry after 2 minutes — cookies stay intact until then.
+      return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
     }
 
     const data = await res.json().catch(() => ({}));
     const accessToken =
-      typeof data?.accessToken === "string" ? data.accessToken :
-      typeof data?.access_token === "string" ? data.access_token : null;
+      typeof data?.accessToken === "string"
+        ? data.accessToken
+        : typeof data?.access_token === "string"
+          ? data.access_token
+          : null;
 
     if (!accessToken) {
-      return NextResponse.json({ message: "Invalid refresh response" }, { status: 502 });
+      // Malformed backend response — don't clear cookies, just signal error
+      return NextResponse.json(
+        { message: "Invalid refresh response" },
+        { status: 502 },
+      );
     }
 
-    const expiresIn: number = typeof data?.expiresIn === "number" ? data.expiresIn : 15 * 60;
+    const expiresIn: number =
+      typeof data?.expiresIn === "number" ? data.expiresIn : 15 * 60;
 
     const response = NextResponse.json({ ok: true });
     response.cookies.set("access_token", accessToken, {
@@ -47,6 +60,7 @@ export async function POST() {
     });
     return response;
   } catch (err) {
+    // Network / parse error — NEVER clear cookies on transient errors
     const message = err instanceof Error ? err.message : "Internal error";
     return NextResponse.json({ message }, { status: 502 });
   }

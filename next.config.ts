@@ -11,4 +11,11 @@ export default withNextIntl({
     },
   },
   serverExternalPackages: [],
+  // Allow up to 11MB uploads (10MB file + multipart overhead)
+  api: {
+    bodyParser: {
+      sizeLimit: "11mb",
+    },
+    responseLimit: "11mb",
+  },
 });

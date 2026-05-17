@@ -147,9 +147,12 @@ function parsePrescriptionPayload(raw: string | object) {
 }
 
 function fileUrl(file: Attachment) {
-  return file.url.startsWith("http")
-    ? file.url
-    : `/api/upload?url=${encodeURIComponent(file.url)}`;
+  // Always proxy through the Next.js /api/upload GET route.
+  // The backend re-generates a fresh Cloudinary signed URL on every call,
+  // so images never appear broken after the 5-minute Cloudinary expiry.
+  const raw = file.url;
+  if (!raw) return "";
+  return `/api/upload?url=${encodeURIComponent(raw)}`;
 }
 
 function isImage(file: Attachment) {

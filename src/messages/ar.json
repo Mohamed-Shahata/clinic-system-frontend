@@ -105,7 +105,9 @@
       "receptionist": "موظف استقبال",
       "clinicLabel": "العيادة",
       "catalogGroup": "كتالوج الطبيب",
-      "workspace": "مساحة العمل"
+      "workspace": "مساحة العمل",
+      "complaints": "الشكاوي",
+      "siteRating": "تقييم المنصة"
     },
     "doctorSettings": {
       "title": "الإعدادات",

@@ -54,6 +54,16 @@ export function getNavItems(
         icon: <CalendarPlusIcon />,
       },
       {
+        href: `/${locale}/dashboard/super-admin/complaints`,
+        label: t("complaints"),
+        icon: <ComplaintIcon />,
+      },
+      {
+        href: `/${locale}/dashboard/super-admin/ratings`,
+        label: t("siteRating"),
+        icon: <StarIcon />,
+      },
+      {
         href: `/${locale}/dashboard/super-admin/settings`,
         label: t("settings"),
         icon: <SettingsIcon />,
@@ -119,6 +129,16 @@ export function getNavItems(
           href: `${base}/doctor-admin/services`,
           label: t("services"),
           icon: <ServicesIcon />,
+        },
+        {
+          href: `${base}/doctor-admin/complaints`,
+          label: t("complaints"),
+          icon: <ComplaintIcon />,
+        },
+        {
+          href: `${base}/doctor-admin/site-rating`,
+          label: t("siteRating"),
+          icon: <StarIcon />,
         },
         {
           href: `${base}/doctor-admin/settings`,
@@ -709,6 +729,39 @@ function FlaskIcon() {
     >
       <path d="M9 3h6M10 3v6l-3.8 9.6A1 1 0 0 0 7.1 21h9.8a1 1 0 0 0 .9-1.4L14 9V3" />
       <path d="M8.5 14h7" />
+    </svg>
+  );
+}
+function ComplaintIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      <path d="M12 8v4M12 16h.01" />
+    </svg>
+  );
+}
+function StarIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
   );
 }

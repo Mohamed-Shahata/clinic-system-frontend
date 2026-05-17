@@ -12,7 +12,8 @@ function ForgotIllustration() {
   return (
     <svg
       viewBox="0 0 420 480"
-      className="w-72 h-80"
+      className="w-full max-w-xs opacity-80"
+      style={{ maxHeight: "360px" }}
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
@@ -229,8 +230,8 @@ export default function ForgotPasswordPage() {
 
   /* ── Illustration panel (shared) ───────────────────────────────── */
   const IllustrationPanel = (
-    <section className="hidden lg:flex flex-col justify-between bg-sidebar p-10 text-white relative overflow-hidden">
-      <div className="flex items-center gap-3 relative z-10">
+    <section className="hidden lg:flex flex-col justify-between bg-sidebar p-10 text-white overflow-hidden">
+      <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded bg-primary">
           <svg
             width="20"
@@ -251,11 +252,11 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* Centered illustration */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <div className="flex-1 flex items-center justify-center pointer-events-none px-4">
         <ForgotIllustration />
       </div>
 
-      <div className="max-w-lg relative z-10">
+      <div className="max-w-lg">
         <h1 className="text-3xl font-semibold leading-tight">
           {isAr ? "استعادة الوصول لحسابك" : "Recover access to your account"}
         </h1>
@@ -266,7 +267,7 @@ export default function ForgotPasswordPage() {
         </p>
       </div>
 
-      <p className="text-xs text-sidebar-fg relative z-10">
+      <p className="text-xs text-sidebar-fg">
         {isAr ? "نظام إدارة عيادة متكامل" : "Multi-tenant clinic operations"}
       </p>
     </section>

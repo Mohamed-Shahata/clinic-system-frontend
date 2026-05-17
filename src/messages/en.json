@@ -105,7 +105,9 @@
       "receptionist": "Receptionist",
       "clinicLabel": "Clinic",
       "catalogGroup": "Catalog",
-      "workspace": "Workspace"
+      "workspace": "Workspace",
+      "complaints": "Complaints",
+      "siteRating": "Rate Platform"
     },
     "doctorSettings": {
       "title": "Settings",
