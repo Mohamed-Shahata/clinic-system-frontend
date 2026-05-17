@@ -230,8 +230,19 @@ export default function ForgotPasswordPage() {
 
   /* ── Illustration panel (shared) ───────────────────────────────── */
   const IllustrationPanel = (
-    <section className="hidden lg:flex flex-col justify-between bg-sidebar p-10 text-white overflow-hidden">
-      <div className="flex items-center gap-3">
+    <section className="hidden lg:flex flex-col justify-between text-white relative overflow-hidden min-h-screen">
+      {/* Background image */}
+      <img
+        src="/auth-doctor.jpg"
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        aria-hidden="true"
+      />
+      {/* Dark overlay */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/20" />
+
+      {/* Logo */}
+      <div className="flex items-center gap-3 relative z-10 p-10">
         <div className="flex h-10 w-10 items-center justify-center rounded bg-primary">
           <svg
             width="20"
@@ -251,23 +262,21 @@ export default function ForgotPasswordPage() {
         </p>
       </div>
 
-      {/* Centered illustration */}
-      <div className="flex-1 flex items-center justify-center pointer-events-none px-4">
-        <ForgotIllustration />
-      </div>
+      {/* Spacer */}
+      <div className="flex-1" />
 
-      <div className="max-w-lg">
+      <div className="max-w-lg relative z-10 p-10 pb-6">
         <h1 className="text-3xl font-semibold leading-tight">
           {isAr ? "استعادة الوصول لحسابك" : "Recover access to your account"}
         </h1>
-        <p className="mt-3 text-sm text-sidebar-fg">
+        <p className="mt-3 text-sm text-white/70">
           {isAr
             ? "سنرسل لك كود التحقق على بريدك الإلكتروني في ثوانٍ."
             : "We'll send a 6-digit verification code to your email in seconds."}
         </p>
       </div>
 
-      <p className="text-xs text-sidebar-fg">
+      <p className="text-xs text-white/60 relative z-10 px-10 pb-10">
         {isAr ? "نظام إدارة عيادة متكامل" : "Multi-tenant clinic operations"}
       </p>
     </section>
@@ -516,8 +525,12 @@ export default function ForgotPasswordPage() {
         English → illustration is in column 1 (left side)  → show Illustration first, then Form
         We use CSS order to control position without duplicating JSX.
       */}
-      <div style={{ order: isAr ? 2 : 1 }}>{IllustrationPanel}</div>
-      <div style={{ order: isAr ? 1 : 2 }}>{FormPanel}</div>
+      <div style={{ order: isAr ? 2 : 1 }} className="contents">
+        {IllustrationPanel}
+      </div>
+      <div style={{ order: isAr ? 1 : 2 }} className="contents">
+        {FormPanel}
+      </div>
     </div>
   );
 }

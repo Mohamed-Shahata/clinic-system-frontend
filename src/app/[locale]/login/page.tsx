@@ -372,9 +372,19 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <section className="hidden lg:flex flex-col justify-between bg-sidebar p-10 text-white relative overflow-hidden">
+      <section className="hidden lg:flex flex-col justify-between text-white relative overflow-hidden">
+        {/* Background image — fills full panel */}
+        <img
+          src="/auth-doctor.jpg"
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          aria-hidden="true"
+        />
+        {/* Dark overlay for readability */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/30 to-black/20" />
+
         {/* Logo */}
-        <div className="flex items-center gap-3 relative z-10">
+        <div className="flex items-center gap-3 relative z-10 p-10">
           <div className="flex h-10 w-10 items-center justify-center rounded bg-primary">
             <svg
               width="20"
@@ -394,246 +404,8 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* FIX-4: رسم طبيب احترافي جديد ── */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <svg
-            viewBox="0 0 420 500"
-            className="w-80 h-96"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            {/* ── خلفية دائرة ناعمة ── */}
-            <circle cx="210" cy="240" r="180" fill="rgba(255,255,255,0.04)" />
-            <circle cx="210" cy="240" r="130" fill="rgba(255,255,255,0.04)" />
-
-            {/* ── الرأس ── */}
-            <ellipse
-              cx="210"
-              cy="108"
-              rx="46"
-              ry="52"
-              fill="rgba(255,255,255,0.18)"
-            />
-            {/* الشعر */}
-            <path
-              d="M164 95 Q168 60 210 58 Q252 60 256 95 Q248 72 210 70 Q172 72 164 95Z"
-              fill="rgba(255,255,255,0.28)"
-            />
-            {/* الرقبة */}
-            <rect
-              x="196"
-              y="156"
-              width="28"
-              height="28"
-              rx="8"
-              fill="rgba(255,255,255,0.16)"
-            />
-
-            {/* ── الجسم — معطف أبيض ── */}
-            <path
-              d="M148 184 Q138 200 135 280 L145 380 L185 380 L210 310 L235 380 L275 380 L285 280 Q282 200 272 184 Q248 174 210 174 Q172 174 148 184Z"
-              fill="rgba(255,255,255,0.14)"
-            />
-            {/* طوق المعطف */}
-            <path
-              d="M196 174 L200 230 L210 250 L220 230 L224 174"
-              fill="rgba(255,255,255,0.10)"
-              stroke="rgba(255,255,255,0.20)"
-              strokeWidth="1"
-            />
-            {/* زر المعطف */}
-            <circle cx="210" cy="265" r="3.5" fill="rgba(255,255,255,0.25)" />
-            <circle cx="210" cy="285" r="3.5" fill="rgba(255,255,255,0.25)" />
-            <circle cx="210" cy="305" r="3.5" fill="rgba(255,255,255,0.25)" />
-
-            {/* ── الكتفين والذراعين ── */}
-            {/* ذراع يسار */}
-            <path
-              d="M148 188 Q120 200 112 245 Q108 270 118 290 L130 290 Q122 268 126 248 Q133 215 152 205Z"
-              fill="rgba(255,255,255,0.14)"
-            />
-            {/* ذراع يمين */}
-            <path
-              d="M272 188 Q300 200 308 245 Q312 270 302 290 L290 290 Q298 268 294 248 Q287 215 268 205Z"
-              fill="rgba(255,255,255,0.14)"
-            />
-            {/* اليد اليسرى */}
-            <ellipse
-              cx="124"
-              cy="297"
-              rx="10"
-              ry="12"
-              fill="rgba(255,255,255,0.16)"
-            />
-            {/* اليد اليمنى تمسك ملف طبي */}
-            <ellipse
-              cx="296"
-              cy="297"
-              rx="10"
-              ry="12"
-              fill="rgba(255,255,255,0.16)"
-            />
-
-            {/* ── ملف طبي في اليد اليمنى ── */}
-            <rect
-              x="302"
-              y="270"
-              width="34"
-              height="44"
-              rx="4"
-              fill="rgba(255,255,255,0.20)"
-              stroke="rgba(255,255,255,0.30)"
-              strokeWidth="1"
-            />
-            <rect
-              x="306"
-              y="278"
-              width="22"
-              height="2.5"
-              rx="1"
-              fill="rgba(255,255,255,0.40)"
-            />
-            <rect
-              x="306"
-              y="285"
-              width="18"
-              height="2.5"
-              rx="1"
-              fill="rgba(255,255,255,0.30)"
-            />
-            <rect
-              x="306"
-              y="292"
-              width="20"
-              height="2.5"
-              rx="1"
-              fill="rgba(255,255,255,0.30)"
-            />
-            <rect
-              x="306"
-              y="299"
-              width="14"
-              height="2.5"
-              rx="1"
-              fill="rgba(255,255,255,0.20)"
-            />
-            {/* كليب الملف */}
-            <rect
-              x="313"
-              y="265"
-              width="12"
-              height="8"
-              rx="3"
-              fill="rgba(255,255,255,0.30)"
-            />
-
-            {/* ── سماعة الطبيب (ستيثوسكوب) ── */}
-            <path
-              d="M172 200 Q162 215 158 235 Q155 255 162 265 Q172 278 185 275 Q198 272 200 260"
-              stroke="rgba(255,255,255,0.35)"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-              fill="none"
-            />
-            {/* الجزء الدائري للسماعة */}
-            <circle
-              cx="162"
-              cy="268"
-              r="8"
-              fill="rgba(255,255,255,0.22)"
-              stroke="rgba(255,255,255,0.38)"
-              strokeWidth="2"
-            />
-            <circle cx="162" cy="268" r="4" fill="rgba(255,255,255,0.35)" />
-            {/* سماعة الأذن */}
-            <path
-              d="M172 200 Q178 195 184 198"
-              stroke="rgba(255,255,255,0.30)"
-              strokeWidth="3"
-              strokeLinecap="round"
-              fill="none"
-            />
-            <circle cx="184" cy="198" r="4" fill="rgba(255,255,255,0.28)" />
-
-            {/* ── صليب طبي ── */}
-            <rect
-              x="74"
-              y="155"
-              width="10"
-              height="30"
-              rx="3"
-              fill="rgba(255,255,255,0.30)"
-            />
-            <rect
-              x="64"
-              y="165"
-              width="30"
-              height="10"
-              rx="3"
-              fill="rgba(255,255,255,0.30)"
-            />
-
-            {/* ── نبضات قلب في الخلفية ── */}
-            <polyline
-              points="30,350 55,350 65,330 75,370 88,340 100,355 120,355"
-              stroke="rgba(255,255,255,0.15)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-            <polyline
-              points="300,420 325,420 335,400 345,440 358,410 370,425 390,425"
-              stroke="rgba(255,255,255,0.12)"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-
-            {/* ── عيون ── */}
-            <ellipse
-              cx="196"
-              cy="104"
-              rx="5"
-              ry="6"
-              fill="rgba(255,255,255,0.30)"
-            />
-            <ellipse
-              cx="224"
-              cy="104"
-              rx="5"
-              ry="6"
-              fill="rgba(255,255,255,0.30)"
-            />
-            <ellipse
-              cx="196"
-              cy="105"
-              rx="2.5"
-              ry="3"
-              fill="rgba(255,255,255,0.55)"
-            />
-            <ellipse
-              cx="224"
-              cy="105"
-              rx="2.5"
-              ry="3"
-              fill="rgba(255,255,255,0.55)"
-            />
-
-            {/* ── ابتسامة ── */}
-            <path
-              d="M198 128 Q210 138 222 128"
-              stroke="rgba(255,255,255,0.35)"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              fill="none"
-            />
-          </svg>
-        </div>
-
         {/* نص جانبي */}
-        <div className="max-w-lg relative z-10">
+        <div className="max-w-lg relative z-10 p-10 pb-6">
           <h1 className="text-4xl font-semibold leading-tight">
             {isAr
               ? "طريقة أهدأ لإدارة العيادات والمرضى والحسابات."
@@ -646,7 +418,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <p className="text-xs text-sidebar-fg relative z-10">
+        <p className="text-xs text-white/60 relative z-10 px-10 pb-10">
           {isAr ? "نظام إدارة عيادة متكامل" : "Multi-tenant clinic operations"}
         </p>
       </section>
