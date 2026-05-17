@@ -367,7 +367,7 @@ export default function SiteRatingPage() {
           >
             {/* Criteria rows */}
             <div className="divide-y divide-card-border">
-              {CRITERIA.map((c, i) => (
+              {CRITERIA.map((c) => (
                 <div
                   key={c.key}
                   className="flex items-center justify-between gap-4 px-6 py-5 hover:bg-surface/50 transition-colors"
@@ -425,7 +425,7 @@ export default function SiteRatingPage() {
                 </p>
               </div>
 
-              {/* Would refer toggle */}
+              {/* ✅ FIXED: Would refer toggle — RTL-safe, no conditional translate */}
               <label className="flex items-center gap-3 cursor-pointer select-none group">
                 <button
                   type="button"
@@ -441,15 +441,14 @@ export default function SiteRatingPage() {
                     form.wouldRefer ? "bg-primary" : "bg-border"
                   }`}
                 >
+                  {/*
+                   * FIX: translate-x-6 = ON (right side in LTR & RTL absolute positioning)
+                   *      translate-x-1 = OFF (left side)
+                   * Removed isAr condition — absolute positioning isn't affected by dir=""
+                   */}
                   <span
                     className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
-                      form.wouldRefer
-                        ? isAr
-                          ? "translate-x-1"
-                          : "translate-x-6"
-                        : isAr
-                          ? "translate-x-6"
-                          : "translate-x-1"
+                      form.wouldRefer ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
                 </button>
