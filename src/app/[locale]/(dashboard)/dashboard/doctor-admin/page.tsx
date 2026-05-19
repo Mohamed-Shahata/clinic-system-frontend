@@ -13,9 +13,19 @@ async function fetchPatients(token: string) {
       cache: "no-store",
     });
     if (!res.ok) return [];
-    return res.json() as Promise<
-      Array<{ id: string; fullName: string; phone?: string; createdAt: string }>
-    >;
+    const payload = (await res.json()) as
+      | Array<{ id: string; fullName: string; phone?: string; createdAt: string }>
+      | {
+          data: Array<{
+            id: string;
+            fullName: string;
+            phone?: string;
+            createdAt: string;
+          }>;
+          nextCursor: string | null;
+        };
+    // FIX: /api/patients now returns a paginated shape; unwrap it for dashboard stats.
+    return Array.isArray(payload) ? payload : payload.data;
   } catch {
     return [];
   }
