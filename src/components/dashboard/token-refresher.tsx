@@ -3,42 +3,60 @@
 /**
  * TokenRefresher
  *
- * - يجدد الـ access_token كل 13 دقيقة (قبل انتهائه بدقيقتين)
- * - يفحص كل دقيقة لو الحساب اتعطل من الدكتور/الأدمن
+ * ─ يجدد الـ access_token كل 13 دقيقة (قبل انتهائه بدقيقتين).
+ * ─ بعد كل تجديد ناجح يفحص إذا الحساب/العيادة لا تزال فعّالة.
  *
- * السيشن تفضل شغالة ما دام المستخدم مفعملش logout يدوي.
- * الـ logout التلقائي بيحصل بس لو:
- *   - الحساب اتعطل (revoked = true من /api/auth/me)
- * مش بيحصل logout لو:
- *   - الـ refresh فشل مؤقتاً (network, 5xx, 429) → retry
- *   - الـ refresh token انتهى → retry وسيحاول كل 2 دقيقة
+ * قواعد الـ logout التلقائي:
+ *   ✅ يحصل logout فقط إذا رجع { revoked: true } من /api/auth/me
+ *      وذلك فقط بعد تجديد ناجح للتوكن (لضمان أن الـ 401 ليس resulting من توكن منتهي).
+ *   ❌ لا يحصل logout إذا:
+ *      - فشل الـ refresh مؤقتاً (network, 5xx, 429) → retry بعد دقيقتين
+ *      - فشل فحص /api/auth/me لأي سبب → تجاهل وكمل
+ *      - الـ access token منتهي مؤقتاً قبل الـ refresh → سيتجدد تلقائياً
  */
 
 import { useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 const REFRESH_INTERVAL_MS = 13 * 60 * 1000; // كل 13 دقيقة
-const RETRY_INTERVAL_MS = 2 * 60 * 1000; // retry بعد دقيقتين
-const ACTIVE_CHECK_INTERVAL_MS = 60 * 1000; // فحص التعطيل كل دقيقة
+const RETRY_INTERVAL_MS = 2 * 60 * 1000; // retry بعد دقيقتين عند الفشل
 
 export function TokenRefresher() {
   const router = useRouter();
   const params = useParams<{ locale?: string }>();
   const locale = params?.locale ?? "ar";
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const checkTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const scheduleRefresh = (delay: number) => {
     if (refreshTimer.current) clearTimeout(refreshTimer.current);
     refreshTimer.current = setTimeout(() => void doRefresh(), delay);
   };
 
-  const scheduleCheck = () => {
-    if (checkTimer.current) clearTimeout(checkTimer.current);
-    checkTimer.current = setTimeout(
-      () => void checkRevocation(),
-      ACTIVE_CHECK_INTERVAL_MS,
-    );
+  /**
+   * فحص التعطيل — يُستدعى فقط بعد تجديد ناجح للتوكن.
+   * بهذا نضمن أن الـ access_token صالح وأي 401 هو revocation حقيقي.
+   */
+  const checkRevocationAfterRefresh = async () => {
+    try {
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
+
+      // 200 = الجلسة سليمة، تجاهل
+      if (res.ok) return;
+
+      if (res.status === 401) {
+        const body = (await res.json().catch(() => ({}))) as {
+          revoked?: boolean;
+        };
+        if (body.revoked === true) {
+          // الحساب أو العيادة مُعطَّل أو الاشتراك منتهي → logout فوري
+          router.replace(`/${locale}/login`);
+        }
+        // revoked = false + 401 = حالة مؤقتة غير متوقعة → تجاهل
+      }
+      // 5xx / network → تجاهل دائماً
+    } catch {
+      // network error → تجاهل
+    }
   };
 
   // ── تجديد الـ token ────────────────────────────────────────────────────────
@@ -50,7 +68,8 @@ export function TokenRefresher() {
       });
 
       if (res.ok) {
-        // نجح → جدول التجديد الجاي
+        // نجح → فحص التعطيل الآن (التوكن الجديد صالح بالتأكيد)
+        await checkRevocationAfterRefresh();
         scheduleRefresh(REFRESH_INTERVAL_MS);
       } else {
         // أي خطأ (401, 429, 5xx) → retry بعد دقيقتين بدون logout
@@ -62,32 +81,11 @@ export function TokenRefresher() {
     }
   };
 
-  // ── فحص التعطيل ───────────────────────────────────────────────────────────
-  const checkRevocation = async () => {
-    try {
-      const res = await fetch("/api/auth/me", { cache: "no-store" });
-      const body = (await res.json().catch(() => ({}))) as {
-        revoked?: boolean;
-      };
-
-      if (body.revoked === true) {
-        // الحساب أو العيادة اتعطلت → logout فوري
-        router.replace(`/${locale}/login`);
-        return;
-      }
-    } catch {
-      // network → تجاهل وكمل
-    }
-    scheduleCheck();
-  };
-
   // ── lifecycle ──────────────────────────────────────────────────────────────
   useEffect(() => {
     scheduleRefresh(REFRESH_INTERVAL_MS);
-    scheduleCheck();
     return () => {
       if (refreshTimer.current) clearTimeout(refreshTimer.current);
-      if (checkTimer.current) clearTimeout(checkTimer.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
