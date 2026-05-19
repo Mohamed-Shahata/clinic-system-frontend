@@ -503,6 +503,11 @@ export function BillingClientPage({
     }
   };
 
+  function exportCsv() {
+    // FIX: Trigger browser download for clinic-scoped invoice CSV export.
+    window.location.href = "/api/billing/invoices/export/csv";
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -517,9 +522,14 @@ export function BillingClientPage({
               : "Create invoices and record payments"}
           </p>
         </div>
-        <Button onClick={() => setShowCreate(true)}>
-          {isAr ? "+ فاتورة جديدة" : "+ New Invoice"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={exportCsv}>
+            {isAr ? "تصدير CSV" : "Export CSV"}
+          </Button>
+          <Button onClick={() => setShowCreate(true)}>
+            {isAr ? "+ فاتورة جديدة" : "+ New Invoice"}
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

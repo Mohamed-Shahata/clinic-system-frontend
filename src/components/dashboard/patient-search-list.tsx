@@ -24,6 +24,8 @@ export function PatientSearchList({
   const isAr = locale === "ar";
   const [q, setQ] = useState("");
   const [patients, setPatients] = useState(initialPatients);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -36,7 +38,11 @@ export function PatientSearchList({
         },
       )
         .then((res) => res.json())
-        .then((data) => setPatients(Array.isArray(data) ? data : []))
+        .then((data) => {
+          // FIX: Support paginated patient response while keeping old array fallback.
+          setPatients(Array.isArray(data) ? data : data.data ?? []);
+          setNextCursor(Array.isArray(data) ? null : data.nextCursor ?? null);
+        })
         .catch(() => undefined);
     }, 250);
     return () => {
@@ -44,6 +50,24 @@ export function PatientSearchList({
       controller.abort();
     };
   }, [q]);
+
+  async function loadMore() {
+    if (!nextCursor) return;
+    setLoadingMore(true);
+    const params = new URLSearchParams({ cursor: nextCursor, limit: "50" });
+    if (q.trim()) params.set("q", q.trim());
+    try {
+      const res = await fetch(`/api/patients?${params.toString()}`, {
+        cache: "no-store",
+      });
+      const data = await res.json();
+      const more = Array.isArray(data) ? data : data.data ?? [];
+      setPatients((current) => [...current, ...more]);
+      setNextCursor(Array.isArray(data) ? null : data.nextCursor ?? null);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   return (
     <Card>
@@ -110,6 +134,24 @@ export function PatientSearchList({
             </p>
           )}
         </div>
+        {nextCursor && (
+          <div className="border-t border-card-border px-5 py-3 text-center">
+            <button
+              type="button"
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="rounded border border-border bg-surface px-4 py-2 text-xs font-medium text-foreground hover:bg-surface-2 disabled:opacity-60"
+            >
+              {loadingMore
+                ? isAr
+                  ? "جاري التحميل..."
+                  : "Loading..."
+                : isAr
+                  ? "تحميل المزيد"
+                  : "Load more"}
+            </button>
+          </div>
+        )}
       </CardBody>
     </Card>
   );

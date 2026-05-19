@@ -11,17 +11,30 @@ async function fetchPatients(token: string) {
       cache: "no-store",
     });
     if (!res.ok) return [];
-    return res.json() as Promise<
-      Array<{
-        id: string;
-        code: string;
-        fullName: string;
-        phone?: string;
-        dateOfBirth?: string;
-        medicalNotes?: string;
-        createdAt: string;
-      }>
-    >;
+    const payload = (await res.json()) as
+      | {
+          data: Array<{
+            id: string;
+            code: string;
+            fullName: string;
+            phone?: string;
+            dateOfBirth?: string;
+            medicalNotes?: string;
+            createdAt: string;
+          }>;
+          nextCursor: string | null;
+        }
+      | Array<{
+          id: string;
+          code: string;
+          fullName: string;
+          phone?: string;
+          dateOfBirth?: string;
+          medicalNotes?: string;
+          createdAt: string;
+        }>;
+    // FIX: Backend now returns paginated patients; unwrap first page for existing client.
+    return Array.isArray(payload) ? payload : payload.data;
   } catch {
     return [];
   }

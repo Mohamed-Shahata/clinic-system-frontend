@@ -16,8 +16,12 @@ export async function GET(request: NextRequest) {
     const url = new URL(`${getBackendBaseUrl()}/api/patients`);
     const q = request.nextUrl.searchParams.get("q");
     const doctorId = request.nextUrl.searchParams.get("doctorId");
+    const cursor = request.nextUrl.searchParams.get("cursor");
+    const limit = request.nextUrl.searchParams.get("limit");
     if (q) url.searchParams.set("q", q);
     if (doctorId) url.searchParams.set("doctorId", doctorId);
+    if (cursor) url.searchParams.set("cursor", cursor);
+    if (limit) url.searchParams.set("limit", limit);
 
     const res = await fetch(url, {
       headers: { Authorization: `Bearer ${token}` },

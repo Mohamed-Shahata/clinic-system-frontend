@@ -56,10 +56,18 @@ export default async function ReceptionistPage({
   const jar = await cookies();
   const token = jar.get("access_token")?.value ?? "";
 
-  const [patients, appointments] = await Promise.all([
-    api<Patient[]>(token, "/api/patients", []),
+  const [patientsPayload, appointments] = await Promise.all([
+    api<Patient[] | { data: Patient[]; nextCursor: string | null }>(
+      token,
+      "/api/patients",
+      [],
+    ),
     api<Appointment[]>(token, "/api/appointments", []),
   ]);
+  // FIX: Backend patient list is paginated; unwrap first page for dashboard counts.
+  const patients = Array.isArray(patientsPayload)
+    ? patientsPayload
+    : patientsPayload.data;
 
   const now = new Date();
   const todayStr = dateInputValue(now);

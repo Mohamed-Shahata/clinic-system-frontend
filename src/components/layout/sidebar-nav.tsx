@@ -64,6 +64,11 @@ export function getNavItems(
         icon: <StarIcon />,
       },
       {
+        href: `/${locale}/dashboard/super-admin/audit-logs`,
+        label: locale === "ar" ? "سجل التدقيق" : "Audit Logs",
+        icon: <ClipboardIcon />,
+      },
+      {
         href: `/${locale}/dashboard/super-admin/settings`,
         label: t("settings"),
         icon: <SettingsIcon />,

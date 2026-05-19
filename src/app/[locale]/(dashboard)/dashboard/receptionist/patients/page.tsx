@@ -29,9 +29,9 @@ export default async function ReceptionPatientsPage({
   const jar = await cookies();
   const token = jar.get("access_token")?.value ?? "";
 
-  const [patients, appointments] = await Promise.all([
+  const [patientsPayload, appointments] = await Promise.all([
     api<
-      Array<{
+      | Array<{
         id: string;
         code: string;
         fullName: string;
@@ -39,6 +39,17 @@ export default async function ReceptionPatientsPage({
         dateOfBirth?: string;
         createdAt: string;
       }>
+      | {
+          data: Array<{
+            id: string;
+            code: string;
+            fullName: string;
+            phone?: string;
+            dateOfBirth?: string;
+            createdAt: string;
+          }>;
+          nextCursor: string | null;
+        }
     >(token, "/api/patients", []),
     api<
       Array<{
@@ -50,6 +61,10 @@ export default async function ReceptionPatientsPage({
       }>
     >(token, "/api/appointments", []),
   ]);
+  // FIX: Backend now returns paginated patients; unwrap first page for existing client.
+  const patients = Array.isArray(patientsPayload)
+    ? patientsPayload
+    : patientsPayload.data;
 
   return (
     <PatientsVisitedPage

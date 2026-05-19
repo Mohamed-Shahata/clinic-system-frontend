@@ -47,18 +47,31 @@ export default async function DoctorAdminAppointmentsPage({
 
   // DOCTOR_ADMIN sees only their own appointments (backend enforces this)
   // patients list is also filtered to only their own patients
-  const [patients, appointments, profile] = await Promise.all([
+  const [patientsPayload, appointments, profile] = await Promise.all([
     api<
-      Array<{
+      | Array<{
         id: string;
         code: string;
         fullName: string;
         phone?: string | null;
       }>
+      | {
+          data: Array<{
+            id: string;
+            code: string;
+            fullName: string;
+            phone?: string | null;
+          }>;
+          nextCursor: string | null;
+        }
     >(token, "/api/patients", []),
     api<Appointment[]>(token, "/api/appointments", []),
     api<{ fullName?: string }>(token, "/api/users/profile", {}),
   ]);
+  // FIX: Backend patient list is paginated; unwrap first page for appointment form.
+  const patients = Array.isArray(patientsPayload)
+    ? patientsPayload
+    : patientsPayload.data;
 
   // Lock booking form to self — DOCTOR_ADMIN books for themselves only
   const selfAsDoctor = session.userId

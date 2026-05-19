@@ -37,6 +37,9 @@ export function PatientsClientPage({
   const isAr = locale === "ar";
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
+  const [rows, setRows] = useState(patients);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const statusLabels: Record<string, string> = {
     IN_QUEUE: isAr ? "قيد الانتظار" : "Waiting",
@@ -57,11 +60,31 @@ export function PatientsClientPage({
 
   const filteredPatients = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return patients;
-    return patients.filter((p) =>
+    if (!q) return rows;
+    return rows.filter((p) =>
       `${p.fullName} ${p.phone ?? ""} ${p.code}`.toLowerCase().includes(q),
     );
-  }, [patients, search]);
+  }, [rows, search]);
+
+  async function loadMore() {
+    if (!nextCursor) return;
+    setLoadingMore(true);
+    try {
+      const res = await fetch(`/api/patients?cursor=${encodeURIComponent(nextCursor)}&limit=50`);
+      const payload = await res.json();
+      // FIX: Append paginated patient rows from the new backend response shape.
+      const more = Array.isArray(payload) ? payload : payload.data ?? [];
+      setRows((current) => [...current, ...more]);
+      setNextCursor(Array.isArray(payload) ? null : payload.nextCursor ?? null);
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
+  function exportCsv() {
+    // FIX: Trigger browser download for clinic-scoped patient CSV export.
+    window.location.href = "/api/patients/export/csv";
+  }
 
   const totalPages = Math.max(
     1,
@@ -85,7 +108,12 @@ export function PatientsClientPage({
               : "Register new patients and manage existing records"}
           </p>
         </div>
-        <CreatePatientButton allowMedicalNotes={false} />
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={exportCsv}>
+            {isAr ? "تصدير CSV" : "Export CSV"}
+          </Button>
+          <CreatePatientButton allowMedicalNotes={false} />
+        </div>
       </div>
 
       {/* Search */}
@@ -235,6 +263,24 @@ export function PatientsClientPage({
                       {isAr ? "التالي" : "Next"}
                     </Button>
                   </div>
+                </div>
+              )}
+              {nextCursor && (
+                <div className="flex justify-center px-5 py-3 border-t border-card-border">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    disabled={loadingMore}
+                    onClick={loadMore}
+                  >
+                    {loadingMore
+                      ? isAr
+                        ? "جاري التحميل..."
+                        : "Loading..."
+                      : isAr
+                        ? "تحميل المزيد"
+                        : "Load more"}
+                  </Button>
                 </div>
               )}
             </>

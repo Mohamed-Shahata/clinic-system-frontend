@@ -47,6 +47,12 @@ type Patient = {
   phone?: string;
   dateOfBirth?: string;
   medicalNotes?: string;
+  medicalHistory?: {
+    chronic: string[];
+    allergies: string[];
+    permanentMeds: string[];
+    notes: string;
+  } | null;
   createdAt: string;
   appointments?: Appointment[];
   prescriptions?: Prescription[];
@@ -261,6 +267,7 @@ export function PatientDetailClient({ locale, patient }: Props) {
   >("timeline");
   const [attachments, setAttachments] = useState(patient.attachments ?? []);
   const [previewFile, setPreviewFile] = useState<Attachment | null>(null);
+  const medicalHistory = patient.medicalHistory;
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
 
@@ -612,7 +619,36 @@ ${medsHTML}
             ))}
           </div>
 
-          {patient.medicalNotes && (
+          {medicalHistory &&
+            (medicalHistory.chronic.length > 0 ||
+              medicalHistory.allergies.length > 0 ||
+              medicalHistory.permanentMeds.length > 0 ||
+              medicalHistory.notes) && (
+              <div className="mt-4 grid gap-3 rounded-xl bg-warning/8 border border-warning/20 px-4 py-3 sm:grid-cols-2">
+                {/* FIX: Prefer structured medical history while preserving legacy notes fallback. */}
+                <ListBlock
+                  title={isAr ? "أمراض مزمنة" : "Chronic"}
+                  items={medicalHistory.chronic}
+                />
+                <ListBlock
+                  title={isAr ? "حساسية" : "Allergies"}
+                  items={medicalHistory.allergies}
+                />
+                <ListBlock
+                  title={isAr ? "أدوية دائمة" : "Permanent meds"}
+                  items={medicalHistory.permanentMeds}
+                />
+                {medicalHistory.notes && (
+                  <InfoBlock
+                    title={isAr ? "ملاحظات" : "Notes"}
+                    value={medicalHistory.notes}
+                    compact
+                  />
+                )}
+              </div>
+            )}
+
+          {!medicalHistory && patient.medicalNotes && (
             <div className="mt-4 rounded-xl bg-warning/8 border border-warning/20 px-4 py-3">
               <p className="text-xs font-semibold text-warning mb-1">
                 {isAr ? "📋 ملاحظات طبية" : "📋 Medical Notes"}

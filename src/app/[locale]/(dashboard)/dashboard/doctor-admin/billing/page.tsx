@@ -29,14 +29,24 @@ export default async function DoctorAdminBillingPage({
   const jar = await cookies();
   const token = jar.get("access_token")?.value ?? "";
 
-  const [patients, invoices] = await Promise.all([
-    api<Array<{ id: string; code: string; fullName: string }>>(
+  const [patientsPayload, invoices] = await Promise.all([
+    api<
+      | Array<{ id: string; code: string; fullName: string }>
+      | {
+          data: Array<{ id: string; code: string; fullName: string }>;
+          nextCursor: string | null;
+        }
+    >(
       token,
       "/api/patients",
       [],
     ),
     api<unknown[]>(token, "/api/billing/invoices", []),
   ]);
+  // FIX: Backend patient list is paginated; unwrap first page for billing form.
+  const patients = Array.isArray(patientsPayload)
+    ? patientsPayload
+    : patientsPayload.data;
 
   return (
     <BillingClientPage
