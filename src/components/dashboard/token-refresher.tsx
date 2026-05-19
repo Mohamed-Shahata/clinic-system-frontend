@@ -72,6 +72,17 @@ export function TokenRefresher() {
         await checkRevocationAfterRefresh();
         scheduleRefresh(REFRESH_INTERVAL_MS);
       } else {
+        const body = (await res.json().catch(() => ({}))) as {
+          message?: string;
+          revoked?: boolean;
+        };
+        if (body.revoked === true) {
+          const expired = body.message?.startsWith("subscription_expired:");
+          router.replace(
+            expired ? `/${locale}/renew-subscription` : `/${locale}/login`,
+          );
+          return;
+        }
         // أي خطأ (401, 429, 5xx) → retry بعد دقيقتين بدون logout
         scheduleRefresh(RETRY_INTERVAL_MS);
       }

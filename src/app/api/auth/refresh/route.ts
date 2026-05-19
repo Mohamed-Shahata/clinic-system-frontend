@@ -24,6 +24,20 @@ export async function POST() {
     });
 
     if (!res.ok) {
+      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      const authEnded =
+        data.message?.startsWith("subscription_expired:") ||
+        data.message?.startsWith("clinic_deactivated:") ||
+        data.message?.startsWith("account_deactivated:");
+      if (authEnded) {
+        const response = NextResponse.json(
+          { message: data.message, revoked: true },
+          { status: 401 },
+        );
+        response.cookies.set("access_token", "", { path: "/", maxAge: 0 });
+        response.cookies.set("refresh_token", "", { path: "/", maxAge: 0 });
+        return response;
+      }
       // ❌ NEVER clear cookies here.
       // A transient failure (network blip, Redis restart, 429, 5xx) would log the user out
       // permanently even though their session is still valid.
@@ -38,9 +52,17 @@ export async function POST() {
         : typeof data?.access_token === "string"
           ? data.access_token
           : null;
+    const nextRefreshToken =
+      typeof data?.refreshToken === "string" ? data.refreshToken : null;
 
     if (!accessToken) {
       // Malformed backend response — don't clear cookies, just signal error
+      return NextResponse.json(
+        { message: "Invalid refresh response" },
+        { status: 502 },
+      );
+    }
+    if (!nextRefreshToken) {
       return NextResponse.json(
         { message: "Invalid refresh response" },
         { status: 502 },
@@ -57,6 +79,13 @@ export async function POST() {
       secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: expiresIn,
+    });
+    response.cookies.set("refresh_token", nextRefreshToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 30 * 24 * 60 * 60,
     });
     return response;
   } catch (err) {

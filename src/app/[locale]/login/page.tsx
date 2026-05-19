@@ -60,6 +60,11 @@ export default function LoginPage() {
         ? "العيادة موقوفة مؤقتاً. تواصل مع الإدارة."
         : "This clinic is currently suspended. Please contact support.";
     }
+    if (text.startsWith("subscription_expired:")) {
+      return isAr
+        ? "تم انتهاء مدة الباقة الخاصة بك. يرجى تجديد الاشتراك."
+        : "Your package has expired. Please renew the subscription.";
+    }
 
     const dictionary: Record<string, { ar: string; en: string }> = {
       "Invalid credentials": {
@@ -117,6 +122,13 @@ export default function LoginPage() {
       >;
 
       if (!res.ok) {
+        if (
+          typeof data.message === "string" &&
+          data.message.startsWith("subscription_expired:")
+        ) {
+          window.location.replace(`/${locale}/renew-subscription`);
+          return;
+        }
         setError(translateLoginError(data.message));
         return;
       }
