@@ -40,7 +40,7 @@ function expireAccessTokenCookie(response: NextResponse): NextResponse {
 }
 
 // ✅ صفحات عامة - مش محتاج auth
-const PUBLIC_PATHS = ["/login", "/forgot-password"];
+const PUBLIC_PATHS = ["/login", "/forgot-password", "/renew-subscription"];
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;

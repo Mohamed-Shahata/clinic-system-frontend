@@ -26,17 +26,20 @@ interface Props {
   locale: string;
   initialSubscription: Subscription | null;
   plans: Plan[];
+  publicRenewal?: boolean;
 }
 
 export function SubscriptionClientPage({
   locale,
   initialSubscription,
   plans,
+  publicRenewal = false,
 }: Props) {
   const isAr = locale === "ar";
   const router = useRouter();
 
   const [selectedPlanId, setSelectedPlanId] = useState(plans[0]?.id ?? "");
+  const [doctorEmail, setDoctorEmail] = useState("");
   const [transferPhone, setTransferPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -82,28 +85,36 @@ export function SubscriptionClientPage({
   async function uploadImage(): Promise<string> {
     if (!imageFile) throw new Error("No image selected");
     setUploading(true);
-    const fd = new FormData();
-    fd.append("file", imageFile);
-    fd.append("folder", "payment-proofs");
-    const res = await fetch("/api/upload?folder=payment-proofs", {
-      method: "POST",
-      body: fd,
-    });
-    const data = (await res.json().catch(() => ({}))) as Record<
-      string,
-      unknown
-    >;
-    setUploading(false);
-    if (!res.ok || !data.url) {
-      throw new Error(
-        typeof data.message === "string"
-          ? data.message
-          : isAr
-            ? "فشل رفع الصورة"
-            : "Image upload failed",
+    try {
+      const fd = new FormData();
+      fd.append("file", imageFile);
+      if (!publicRenewal) fd.append("folder", "payment-proofs");
+      const res = await fetch(
+        publicRenewal
+          ? "/api/upload/payment-proof"
+          : "/api/upload?folder=payment-proofs",
+        {
+          method: "POST",
+          body: fd,
+        },
       );
+      const data = (await res.json().catch(() => ({}))) as Record<
+        string,
+        unknown
+      >;
+      if (!res.ok || !data.url) {
+        throw new Error(
+          typeof data.message === "string"
+            ? data.message
+            : isAr
+              ? "فشل رفع الصورة"
+              : "Image upload failed",
+        );
+      }
+      return data.url as string;
+    } finally {
+      setUploading(false);
     }
-    return data.url as string;
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -111,6 +122,13 @@ export function SubscriptionClientPage({
     if (!selectedPlanId) {
       showToast(
         isAr ? "اختر باقة أولاً" : "Please select a plan first",
+        "error",
+      );
+      return;
+    }
+    if (publicRenewal && !doctorEmail.trim()) {
+      showToast(
+        isAr ? "يرجى إدخال إيميل الدكتور" : "Please enter the doctor's email",
         "error",
       );
       return;
@@ -134,16 +152,22 @@ export function SubscriptionClientPage({
     try {
       const screenshotUrl = await uploadImage();
 
-      const res = await fetch("/api/billing/subscription-requests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: selectedPlanId,
-          transferPhone: transferPhone.trim(),
-          screenshotUrl,
-          notes: notes.trim() || undefined,
-        }),
-      });
+      const res = await fetch(
+        publicRenewal
+          ? "/api/billing/public/subscription-requests"
+          : "/api/billing/subscription-requests",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...(publicRenewal ? { login: doctorEmail.trim() } : {}),
+            planId: selectedPlanId,
+            transferPhone: transferPhone.trim(),
+            screenshotUrl,
+            notes: notes.trim() || undefined,
+          }),
+        },
+      );
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -165,6 +189,7 @@ export function SubscriptionClientPage({
         "success",
       );
       setTransferPhone("");
+      setDoctorEmail("");
       setNotes("");
       setImageFile(null);
       setImagePreview(null);
@@ -198,12 +223,22 @@ export function SubscriptionClientPage({
       {/* Page header */}
       <div>
         <h1 className="text-xl font-semibold text-foreground">
-          {isAr ? "اشتراك العيادة" : "Clinic Subscription"}
+          {publicRenewal
+            ? isAr
+              ? "تجديد اشتراك العيادة"
+              : "Renew Clinic Subscription"
+            : isAr
+              ? "اشتراك العيادة"
+              : "Clinic Subscription"}
         </h1>
         <p className="text-sm text-muted mt-0.5">
           {isAr
-            ? "إدارة باقة اشتراك العيادة وتجديد الاشتراك"
-            : "Manage your clinic's subscription plan and renewals"}
+            ? publicRenewal
+              ? "انتهت مدة الباقة الخاصة بك. أرسل بيانات التحويل ليتم تفعيل العيادة بعد المراجعة."
+              : "إدارة باقة اشتراك العيادة وتجديد الاشتراك"
+            : publicRenewal
+              ? "Your package has expired. Send transfer details so the clinic can be reactivated after review."
+              : "Manage your clinic's subscription plan and renewals"}
         </p>
       </div>
 
@@ -324,6 +359,26 @@ export function SubscriptionClientPage({
         </CardHeader>
         <CardBody>
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+            {/* Plan Cards */}
+            {publicRenewal && (
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1.5">
+                  {isAr ? "إيميل الدكتور" : "Doctor Email"}
+                  <span className="ms-1 text-danger">*</span>
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={doctorEmail}
+                  onChange={(e) => setDoctorEmail(e.target.value)}
+                  placeholder={
+                    isAr ? "doctor@example.com" : "doctor@example.com"
+                  }
+                  className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none ring-primary/30 focus:ring-2"
+                />
+              </div>
+            )}
+
             {/* Plan Cards */}
             <div>
               <label className="block text-sm font-semibold text-foreground mb-3">

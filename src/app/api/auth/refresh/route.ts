@@ -70,7 +70,7 @@ export async function POST() {
     }
 
     const expiresIn: number =
-      typeof data?.expiresIn === "number" ? data.expiresIn : 15 * 60;
+      typeof data?.expiresIn === "number" ? data.expiresIn : 365 * 24 * 60 * 60;
 
     const response = NextResponse.json({ ok: true });
     response.cookies.set("access_token", accessToken, {
@@ -85,7 +85,7 @@ export async function POST() {
       sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60,
+      maxAge: 10 * 365 * 24 * 60 * 60,
     });
     return response;
   } catch (err) {

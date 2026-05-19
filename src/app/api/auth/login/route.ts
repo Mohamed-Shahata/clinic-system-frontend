@@ -32,7 +32,9 @@ function pickRefreshToken(data: NestLoginBody): string | null {
 
 function pickExpiresIn(data: NestLoginBody): number {
   const value = data.expiresIn ?? data.data?.expiresIn;
-  return typeof value === "number" && Number.isFinite(value) ? value : 15 * 60;
+  return typeof value === "number" && Number.isFinite(value)
+    ? value
+    : 365 * 24 * 60 * 60;
 }
 
 export async function POST(request: NextRequest) {
@@ -98,7 +100,7 @@ export async function POST(request: NextRequest) {
     sameSite: "strict",
     secure,
     path: "/",
-    maxAge: 30 * 24 * 60 * 60,
+    maxAge: 10 * 365 * 24 * 60 * 60,
   });
 
   return response;
