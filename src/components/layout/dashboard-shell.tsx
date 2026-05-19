@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { SidebarNav } from "./sidebar-nav";
 import type { SessionClaims } from "@/lib/auth/verify-token";
 import { NotificationBell } from "../dashboard/notification-bell";
+import { PWAInstallBanner } from "../ui/pwa-install";
 
 interface DashboardShellProps {
   children: ReactNode;
@@ -147,6 +148,7 @@ export function DashboardShell({
           {children}
         </main>
       </div>
+      <PWAInstallBanner isAr={isAr} />
     </div>
   );
 }

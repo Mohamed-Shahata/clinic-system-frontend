@@ -73,8 +73,24 @@ export function PWAInstallBanner({ isAr }: { isAr: boolean }) {
       dir={isAr ? "rtl" : "ltr"}
     >
       {/* Icon */}
-      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-xl shrink-0">
-        📲
+      <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <rect x="5" y="2" width="14" height="20" rx="2" />
+          <path d="M12 18h.01" />
+          <path d="M8 6h8" />
+          <path d="M12 9v6" />
+          <path d="m9.5 12.5 2.5 2.5 2.5-2.5" />
+        </svg>
       </div>
 
       {/* Text */}

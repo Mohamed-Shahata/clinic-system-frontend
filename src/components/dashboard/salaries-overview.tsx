@@ -41,6 +41,8 @@ export function SalariesOverview() {
   };
   useEffect(() => {
     void load();
+    window.addEventListener("clinic:receptionist-created", load);
+    return () => window.removeEventListener("clinic:receptionist-created", load);
   }, []);
 
   const handleSetSalary = async () => {

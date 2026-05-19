@@ -98,6 +98,7 @@ export function CreateReceptionistForm({
       setEmail("");
       setPhone("");
       setPassword("");
+      window.dispatchEvent(new Event("clinic:receptionist-created"));
       onSuccess?.();
     } finally {
       setPending(false);
