@@ -388,17 +388,17 @@ export function PhoneInput({
         )}
       </div>
 
-      {/* ── Row 2: Country code badge + digit boxes ─────────────── */}
-      <div className="flex rounded-lg border border-border bg-surface overflow-hidden ring-primary/30 focus-within:ring-2 transition-shadow">
+      {/* ── Row 2: Country code badge + digit slots (underline only) ── */}
+      <div className="flex items-end gap-2">
         {/* Code badge */}
-        <div className="flex items-center gap-1.5 border-e border-border bg-surface-2/60 px-3 py-2.5 shrink-0 select-none">
+        <div className="flex items-center gap-1.5 border-b border-border pb-2 shrink-0 select-none">
           <span className="text-base leading-none">{selectedCountry.flag}</span>
           <span className="font-mono text-sm font-medium text-foreground">
             {selectedCountry.code}
           </span>
         </div>
 
-        <div className="relative min-w-0 flex-1 px-2 py-2.5">
+        <div className="relative min-w-0 flex-1 pb-0.5">
           <input
             id={id}
             type="tel"
@@ -412,7 +412,7 @@ export function PhoneInput({
             maxLength={selectedCountry.digits}
           />
           <div
-            className="grid gap-1.5"
+            className="grid gap-2"
             style={{
               gridTemplateColumns: `repeat(${selectedCountry.digits}, minmax(0, 1fr))`,
             }}
@@ -421,10 +421,10 @@ export function PhoneInput({
             {digitSlots.map((_, index) => (
               <span
                 key={index}
-                className={`flex aspect-square min-h-7 items-center justify-center rounded-md border text-xs font-mono font-semibold tabular-nums transition-colors sm:text-sm ${
+                className={`flex h-9 items-center justify-center border-b-2 text-xs font-mono font-semibold tabular-nums transition-colors sm:text-sm ${
                   localDigits[index]
-                    ? "border-primary/40 bg-primary/6 text-foreground"
-                    : "border-border bg-surface-2/60 text-muted/40"
+                    ? "border-primary text-foreground"
+                    : "border-border text-muted/40"
                 }`}
               >
                 {localDigits[index] ?? ""}
