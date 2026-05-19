@@ -8,6 +8,7 @@ interface StaffSalaryRow {
   clinicUserId: string;
   userId: string;
   fullName: string;
+  isActive?: boolean;
   monthlyAmount: number | null;
   dailyRate: number;
   accrued: number;
@@ -127,6 +128,11 @@ export function SalariesOverview() {
                       <p className="text-sm font-semibold text-foreground">
                         {row.fullName}
                       </p>
+                      {row.isActive === false && (
+                        <p className="text-xs text-warning">
+                          {isAr ? "حساب متوقف" : "Inactive account"}
+                        </p>
+                      )}
                       {row.effectiveFrom && (
                         <p className="text-xs text-muted">
                           {isAr ? "منذ" : "Since"}{" "}

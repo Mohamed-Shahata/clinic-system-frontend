@@ -119,9 +119,7 @@ export function CreateClinicForm({
       return;
     }
     if (!adminEmail.trim()) {
-      setError(
-        isAr ? "البريد الإلكتروني للطبيب مطلوب" : "Doctor email is required",
-      );
+      setError(isAr ? "اسم مستخدم الطبيب مطلوب" : "Doctor username is required");
       return;
     }
     if (!adminPassword) {
@@ -257,14 +255,15 @@ export function CreateClinicForm({
             {/* Email OR Phone - both optional, at least one */}
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label={isAr ? "البريد الإلكتروني" : "Email"}
-                type="email"
-                placeholder="doctor@clinic.com"
+                label={isAr ? "اسم مستخدم الطبيب" : "Doctor username"}
+                placeholder="doctor.name"
                 required
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
                 hint={
-                  isAr ? "يمكن تسجيل الدخول بالبريد" : "Can login with email"
+                  isAr
+                    ? "سيتم إنشاء الإيميل تلقائياً: الاسم@clinic.com"
+                    : "Email will be created as username@clinic.com"
                 }
               />
               <PhoneInput

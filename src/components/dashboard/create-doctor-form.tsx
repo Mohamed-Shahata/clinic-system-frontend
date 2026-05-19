@@ -10,6 +10,7 @@ import {
   CardHeader,
   Alert,
 } from "@/components/ui";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 type ClinicContext = { clinicName: string; clinicSlug: string };
 type Handoff = {
@@ -93,12 +94,11 @@ export function CreateDoctorForm({
     setError(null);
     setHandoff(null);
 
-    // ✅ email أو phone مطلوب
     if (!email.trim() && !phone.trim()) {
       setError(
         isAr
-          ? "يجب إدخال البريد الإلكتروني أو رقم الهاتف"
-          : "Email or phone number is required",
+          ? "يجب إدخال اسم المستخدم أو رقم الهاتف"
+          : "Username or phone number is required",
       );
       return;
     }
@@ -197,28 +197,31 @@ export function CreateDoctorForm({
               onChange={(e) => setFullName(e.target.value)}
             />
 
-            {/* ✅ Email OR Phone */}
+            {/* Username OR Phone */}
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label={isAr ? "البريد الإلكتروني" : "Email (optional)"}
-                type="email"
-                placeholder="doctor@clinic.com"
+                label={isAr ? "اسم المستخدم" : "Username"}
+                placeholder="doctor.name"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                hint={
+                  isAr
+                    ? "سيتم إنشاء الإيميل تلقائياً: الاسم@clinic.com"
+                    : "Email will be created as username@clinic.com"
+                }
               />
-              <Input
-                label={isAr ? "رقم الهاتف" : "Phone (optional)"}
-                type="tel"
-                placeholder="01000000000"
+              <PhoneInput
+                label={isAr ? "رقم الهاتف" : "Phone"}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={setPhone}
+                locale={locale}
               />
             </div>
             {!email && !phone && (
               <p className="text-xs text-muted -mt-2">
                 {isAr
-                  ? "* يجب إدخال البريد الإلكتروني أو رقم الهاتف على الأقل"
-                  : "* At least email or phone is required"}
+                  ? "* يجب إدخال اسم المستخدم أو رقم الهاتف على الأقل"
+                  : "* At least username or phone is required"}
               </p>
             )}
 
