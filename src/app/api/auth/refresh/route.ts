@@ -38,10 +38,20 @@ export async function POST() {
         response.cookies.set("refresh_token", "", { path: "/", maxAge: 0 });
         return response;
       }
-      // ❌ NEVER clear cookies here.
-      // A transient failure (network blip, Redis restart, 429, 5xx) would log the user out
-      // permanently even though their session is still valid.
-      // TokenRefresher will retry after 2 minutes — cookies stay intact until then.
+
+      // Fix 5 — Multi-tab race condition:
+      // If refresh token is invalid (already consumed by another tab), but the
+      // access_token cookie is still present, another tab already refreshed
+      // successfully and wrote a fresh access_token. Return ok so this tab
+      // doesn't retry forever with a dead refresh token.
+      if (res.status === 401) {
+        const currentAccessToken = jar.get("access_token")?.value;
+        if (currentAccessToken) {
+          // Another tab won the race — this tab is fine, no action needed.
+          return NextResponse.json({ ok: true, raceRecovered: true });
+        }
+      }
+
       return NextResponse.json({ message: "Refresh failed" }, { status: 401 });
     }
 
@@ -72,7 +82,7 @@ export async function POST() {
     const expiresIn: number =
       typeof data?.expiresIn === "number" ? data.expiresIn : 365 * 24 * 60 * 60;
 
-    const response = NextResponse.json({ ok: true });
+    const response = NextResponse.json({ ok: true, expiresIn });
     response.cookies.set("access_token", accessToken, {
       httpOnly: true,
       sameSite: "strict",

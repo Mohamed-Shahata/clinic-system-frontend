@@ -47,7 +47,8 @@ export default async function middleware(request: NextRequest) {
   const token = request.cookies.get("access_token")?.value;
 
   let claims: Awaited<ReturnType<typeof verifyAccessToken>> | null = null;
-  let invalidSessionCookie = false;
+  let tokenExpired = false; // expired but valid signature — TokenRefresher can recover
+  let invalidSessionCookie = false; // tampered / malformed — must clear
   if (token) {
     try {
       claims = await verifyAccessToken(token);
@@ -62,8 +63,15 @@ export default async function middleware(request: NextRequest) {
           { status: 500, headers: { "content-type": "text/plain" } },
         );
       }
+      // ERR_JWT_EXPIRED = valid signature but past exp — recoverable via TokenRefresher.
+      // Any other error = tampered / malformed — clear the cookie immediately.
+      const isExpired = (err as { code?: string })?.code === "ERR_JWT_EXPIRED";
+      if (isExpired) {
+        tokenExpired = true;
+      } else {
+        invalidSessionCookie = true;
+      }
       claims = null;
-      invalidSessionCookie = true;
     }
   }
 
@@ -111,7 +119,8 @@ export default async function middleware(request: NextRequest) {
   }
 
   // Dashboard بدون auth → login
-  if (isDashboard && !claims?.sub) {
+  // استثناء: لو التوكن منتهي بس (tokenExpired) → سيبه يلود والـ TokenRefresher هيجدده
+  if (isDashboard && !claims?.sub && !tokenExpired) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = `/${locale}/login`;
     return maybeClearCookie(NextResponse.redirect(redirectUrl));
