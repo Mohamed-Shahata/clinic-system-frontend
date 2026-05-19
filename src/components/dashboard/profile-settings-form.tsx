@@ -16,6 +16,7 @@ import {
   CardHeader,
   Input,
 } from "@/components/ui";
+import { PhoneInput } from "@/components/ui/phone-input";
 
 type ProfileData = {
   id: string;
@@ -376,16 +377,11 @@ export function ProfileSettingsForm() {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
-            <Input
+            <PhoneInput
               label={isAr ? "رقم الهاتف" : "Phone Number"}
-              type="tel"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              hint={
-                isAr
-                  ? "يستخدم لتسجيل الدخول إذا لم يكن هناك بريد إلكتروني"
-                  : "Used for login if no email is set"
-              }
+              onChange={setPhone}
+              locale={locale}
             />
 
             {/* Current email display */}

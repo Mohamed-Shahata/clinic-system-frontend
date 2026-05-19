@@ -224,21 +224,6 @@ const COUNTRIES: Country[] = [
   },
 ];
 
-/** Apply mask to raw digits — replaces '#' with digits one by one */
-function applyMask(digits: string, mask: string): string {
-  let result = "";
-  let di = 0;
-  for (let i = 0; i < mask.length && di < digits.length; i++) {
-    if (mask[i] === "#") {
-      result += digits[di++];
-    } else {
-      // space or separator — add it only if there are more digits coming
-      if (di < digits.length) result += mask[i];
-    }
-  }
-  return result;
-}
-
 function parseValue(val: string): { country: Country; digits: string } {
   const sorted = [...COUNTRIES].sort((a, b) => b.code.length - a.code.length);
   for (const c of sorted) {
@@ -318,9 +303,7 @@ export function PhoneInput({
       c.code.includes(search),
   );
 
-  const masked = applyMask(localDigits, selectedCountry.mask);
-  const placeholderMask = selectedCountry.mask.replace(/#/g, "–");
-  const progress = Math.min(localDigits.length / selectedCountry.digits, 1);
+  const digitSlots = Array.from({ length: selectedCountry.digits });
 
   return (
     <div className={`space-y-2 ${className}`} dir="ltr">
@@ -405,7 +388,7 @@ export function PhoneInput({
         )}
       </div>
 
-      {/* ── Row 2: Country code badge + number input ─────────────── */}
+      {/* ── Row 2: Country code badge + digit boxes ─────────────── */}
       <div className="flex rounded-lg border border-border bg-surface overflow-hidden ring-primary/30 focus-within:ring-2 transition-shadow">
         {/* Code badge */}
         <div className="flex items-center gap-1.5 border-e border-border bg-surface-2/60 px-3 py-2.5 shrink-0 select-none">
@@ -414,44 +397,42 @@ export function PhoneInput({
             {selectedCountry.code}
           </span>
         </div>
-        {/* Number input */}
-        <input
-          id={id}
-          type="tel"
-          inputMode="numeric"
-          required={required}
-          placeholder={placeholderMask}
-          value={masked}
-          onChange={(e) => handleLocalChange(e.target.value)}
-          className="flex-1 bg-transparent px-3 py-2.5 text-sm text-foreground placeholder:text-muted/50 outline-none font-mono tracking-wide"
-          dir="ltr"
-          maxLength={selectedCountry.mask.length}
-        />
-        {/* Digit progress indicator */}
-        {localDigits.length > 0 && (
-          <div className="flex items-center pe-3">
-            <span
-              className={`text-xs font-mono tabular-nums transition-colors ${
-                progress === 1 ? "text-success" : "text-muted"
-              }`}
-            >
-              {localDigits.length}/{selectedCountry.digits}
-            </span>
-          </div>
-        )}
-      </div>
 
-      {/* ── Progress bar ────────────────────────────────────────── */}
-      {localDigits.length > 0 && (
-        <div className="h-0.5 w-full rounded-full bg-border overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-300 ${
-              progress === 1 ? "bg-success" : "bg-primary"
-            }`}
-            style={{ width: `${progress * 100}%` }}
+        <div className="relative min-w-0 flex-1 px-2 py-2.5">
+          <input
+            id={id}
+            type="tel"
+            inputMode="numeric"
+            required={required}
+            aria-label={label}
+            value={localDigits}
+            onChange={(e) => handleLocalChange(e.target.value)}
+            className="absolute inset-0 h-full w-full cursor-text bg-transparent text-transparent caret-primary outline-none"
+            dir="ltr"
+            maxLength={selectedCountry.digits}
           />
+          <div
+            className="grid gap-1.5"
+            style={{
+              gridTemplateColumns: `repeat(${selectedCountry.digits}, minmax(0, 1fr))`,
+            }}
+            aria-hidden="true"
+          >
+            {digitSlots.map((_, index) => (
+              <span
+                key={index}
+                className={`flex aspect-square min-h-7 items-center justify-center rounded-md border text-xs font-mono font-semibold tabular-nums transition-colors sm:text-sm ${
+                  localDigits[index]
+                    ? "border-primary/40 bg-primary/6 text-foreground"
+                    : "border-border bg-surface-2/60 text-muted/40"
+                }`}
+              >
+                {localDigits[index] ?? ""}
+              </span>
+            ))}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

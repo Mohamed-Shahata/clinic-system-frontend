@@ -3,7 +3,10 @@
 import { useState, useRef, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Badge, Button, Card, CardBody, CardHeader } from "@/components/ui";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Toast } from "@/components/ui/toast";
+
+const VODAFONE_CASH_NUMBER = "01055662348";
 
 type Plan = {
   id: string;
@@ -359,6 +362,20 @@ export function SubscriptionClientPage({
         </CardHeader>
         <CardBody>
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+            <div className="rounded-lg border border-primary/20 bg-primary/6 px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">
+                {isAr ? "رقم التحويل للمنصة" : "Platform transfer number"}
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                {isAr
+                  ? "حوّل مبلغ الاشتراك على فودافون كاش للرقم التالي، ثم ارفع صورة الإيصال."
+                  : "Send the subscription payment to this Vodafone Cash number, then upload the receipt."}
+              </p>
+              <p className="mt-2 font-mono text-lg font-bold text-primary" dir="ltr">
+                {VODAFONE_CASH_NUMBER}
+              </p>
+            </div>
+
             {/* Plan Cards */}
             {publicRenewal && (
               <div>
@@ -475,22 +492,13 @@ export function SubscriptionClientPage({
             </div>
 
             {/* Transfer phone */}
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
-                {isAr
-                  ? "رقم هاتف التحويل"
-                  : "Transfer Phone Number"}
-                <span className="ms-1 text-danger">*</span>
-              </label>
-              <input
-                type="tel"
-                required
-                value={transferPhone}
-                onChange={(e) => setTransferPhone(e.target.value)}
-                placeholder={isAr ? "01xxxxxxxxx" : "01234567890"}
-                className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none ring-primary/30 focus:ring-2"
-              />
-            </div>
+            <PhoneInput
+              label={isAr ? "رقم هاتف التحويل" : "Transfer Phone Number"}
+              required
+              value={transferPhone}
+              onChange={setTransferPhone}
+              locale={locale}
+            />
 
             {/* Image upload */}
             <div>

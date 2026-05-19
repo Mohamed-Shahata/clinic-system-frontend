@@ -5,6 +5,7 @@ import {
   type InputHTMLAttributes,
   type ReactNode,
   forwardRef,
+  useState,
 } from "react";
 import { useEffect } from "react";
 
@@ -75,6 +76,8 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, hint, error, className = "", id, ...rest }, ref) => {
     const inputId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
+    const [showPassword, setShowPassword] = useState(false);
+    const isPassword = rest.type === "password";
     return (
       <div className="space-y-1.5">
         {label && (
@@ -85,17 +88,61 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <input
-          ref={ref}
-          id={inputId}
-          className={[
-            "w-full rounded border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted",
-            "outline-none ring-primary/30 focus:ring-2 transition-shadow",
-            error ? "border-danger" : "border-border",
-            className,
-          ].join(" ")}
-          {...rest}
-        />
+        <div className="relative">
+          <input
+            ref={ref}
+            id={inputId}
+            className={[
+              "w-full rounded border bg-surface px-3 py-2 text-sm text-foreground placeholder:text-muted",
+              "outline-none ring-primary/30 focus:ring-2 transition-shadow",
+              isPassword ? "pe-11" : "",
+              error ? "border-danger" : "border-border",
+              className,
+            ].join(" ")}
+            {...rest}
+            type={isPassword && showPassword ? "text" : rest.type}
+          />
+          {isPassword && (
+            <button
+              type="button"
+              onClick={() => setShowPassword((value) => !value)}
+              className="absolute end-2 top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? (
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20C7 20 2.73 16.89 1 12a18.45 18.45 0 0 1 5.06-6.94" />
+                  <path d="M9.9 4.24A10.8 10.8 0 0 1 12 4c5 0 9.27 3.11 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                  <path d="M14.12 14.12A3 3 0 0 1 9.88 9.88" />
+                  <path d="M1 1l22 22" />
+                </svg>
+              ) : (
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
         {hint && !error && <p className="text-xs text-muted">{hint}</p>}
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>
