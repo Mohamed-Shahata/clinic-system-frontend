@@ -388,17 +388,20 @@ export function PhoneInput({
         )}
       </div>
 
-      {/* ── Row 2: Country code badge + digit slots (underline only) ── */}
-      <div className="flex items-end gap-2">
+      {/* ── Row 2: Country code badge + digit slots (underline only, compact) ── */}
+      <div className="flex items-end gap-1.5">
         {/* Code badge */}
-        <div className="flex items-center gap-1.5 border-b border-border pb-2 shrink-0 select-none">
-          <span className="text-base leading-none">{selectedCountry.flag}</span>
-          <span className="font-mono text-sm font-medium text-foreground">
+        <div className="flex items-center gap-1 border-b-2 border-border pb-1.5 shrink-0 select-none">
+          <span className="text-sm leading-none">{selectedCountry.flag}</span>
+          <span className="font-mono text-xs font-semibold text-foreground">
             {selectedCountry.code}
           </span>
         </div>
 
-        <div className="relative min-w-0 flex-1 pb-0.5">
+        {/* separator */}
+        <span className="mb-1.5 text-border text-base select-none">|</span>
+
+        <div className="relative min-w-0 flex-1">
           <input
             id={id}
             type="tel"
@@ -412,19 +415,20 @@ export function PhoneInput({
             maxLength={selectedCountry.digits}
           />
           <div
-            className="grid gap-2"
+            className="grid"
             style={{
               gridTemplateColumns: `repeat(${selectedCountry.digits}, minmax(0, 1fr))`,
+              gap: "3px",
             }}
             aria-hidden="true"
           >
             {digitSlots.map((_, index) => (
               <span
                 key={index}
-                className={`flex h-9 items-center justify-center border-b-2 text-xs font-mono font-semibold tabular-nums transition-colors sm:text-sm ${
+                className={`flex h-7 items-center justify-center border-b-2 text-[11px] font-mono font-bold tabular-nums transition-colors ${
                   localDigits[index]
                     ? "border-primary text-foreground"
-                    : "border-border text-muted/40"
+                    : "border-border text-muted/30"
                 }`}
               >
                 {localDigits[index] ?? ""}
