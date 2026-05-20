@@ -339,11 +339,12 @@ export default function LoginPage() {
                     className="w-full rounded-lg border border-border bg-surface text-sm text-foreground placeholder:text-muted outline-none ring-primary/30 focus:ring-2 transition-shadow"
                     style={{
                       direction: "ltr",
+                      unicodeBidi: "plaintext",
                       textAlign: isAr ? "right" : "left",
                       paddingTop: "0.625rem",
                       paddingBottom: "0.625rem",
-                      paddingLeft: isAr ? "0.75rem" : "2.75rem",
-                      paddingRight: isAr ? "2.75rem" : "0.75rem",
+                      paddingLeft: isAr ? "0.75rem" : "2.5rem",
+                      paddingRight: isAr ? "2.5rem" : "0.75rem",
                     }}
                   />
                   <button

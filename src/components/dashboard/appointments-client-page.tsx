@@ -165,11 +165,13 @@ export function AppointmentsClientPage({
   doctors,
   appointments: initialAppointments,
   locale,
+  canViewPatientFile = true,
 }: {
   patients: Patient[];
   doctors: Doctor[];
   appointments: Appointment[];
   locale: string;
+  canViewPatientFile?: boolean;
 }) {
   const isAr = locale === "ar";
   const { addToast } = useToast();
@@ -803,7 +805,7 @@ export function AppointmentsClientPage({
                           {isAr ? "مغلق" : "Locked"}
                         </Badge>
                       )}
-                      {apt.patient?.id && (
+                      {apt.patient?.id && canViewPatientFile && (
                         <Link
                           href={`/${locale}/dashboard/doctor-admin/patients/${apt.patient.id}`}
                           className="inline-flex h-8 items-center rounded border border-border bg-surface px-3 text-xs font-medium text-foreground hover:bg-surface-2 transition-colors"

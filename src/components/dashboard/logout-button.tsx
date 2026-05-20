@@ -24,6 +24,7 @@ function LogoutModal({
     confirmBody: string;
     cancel: string;
     title: string;
+    pending: string;
   };
   isAr: boolean;
 }) {
@@ -45,11 +46,29 @@ function LogoutModal({
             {copy.cancel}
           </button>
           <button
-            className="rounded bg-danger px-3 py-2 text-sm text-white disabled:opacity-60 transition-opacity"
+            className="rounded bg-danger px-3 py-2 text-sm text-white disabled:opacity-60 transition-opacity inline-flex items-center gap-1.5"
             onClick={onConfirm}
             disabled={pending}
           >
-            {copy.title}
+            {pending ? (
+              <>
+                <svg
+                  className="animate-spin"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                >
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                </svg>
+                {copy.pending}
+              </>
+            ) : (
+              copy.title
+            )}
           </button>
         </div>
       </div>

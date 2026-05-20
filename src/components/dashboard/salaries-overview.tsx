@@ -33,17 +33,27 @@ export function SalariesOverview() {
   const load = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/salaries/overview");
+      const res = await fetch("/api/salaries/overview", { cache: "no-store" });
       const d = await res.json();
       setRows(Array.isArray(d) ? d : []);
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     void load();
+    // Re-fetch when navigating back to this page
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", () => void load());
     window.addEventListener("clinic:receptionist-created", load);
-    return () => window.removeEventListener("clinic:receptionist-created", load);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("clinic:receptionist-created", load);
+    };
   }, []);
 
   const handleSetSalary = async () => {

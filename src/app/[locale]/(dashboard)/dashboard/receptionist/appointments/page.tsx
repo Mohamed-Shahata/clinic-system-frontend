@@ -68,6 +68,7 @@ export default async function AppointmentsPage({
       doctors={doctors}
       appointments={appointments}
       locale={locale}
+      canViewPatientFile={false}
     />
   );
 }

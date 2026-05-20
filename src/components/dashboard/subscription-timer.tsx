@@ -34,7 +34,7 @@ export function SubscriptionTimer() {
   const [sub, setSub] = useState<Subscription | null | "loading">("loading");
   const [tick, setTick] = useState(0);
 
-  useEffect(() => {
+  const fetchSub = () => {
     fetch("/api/billing/subscription", { cache: "no-store" })
       .then(async (res) => {
         if (!res.ok) {
@@ -45,6 +45,20 @@ export function SubscriptionTimer() {
         setSub(data ?? null);
       })
       .catch(() => setSub(null));
+  };
+
+  useEffect(() => {
+    fetchSub();
+    // Re-fetch whenever the user navigates back to this tab/page
+    const onVisible = () => {
+      if (document.visibilityState === "visible") fetchSub();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", fetchSub);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", fetchSub);
+    };
   }, []);
 
   // update every minute
