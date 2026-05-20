@@ -135,26 +135,6 @@ export default async function ReceptionistPage({
           }
         />
         <StatCard
-          label={t("totalPatients")}
-          value={patients.length}
-          color="primary"
-          icon={
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
-              <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-            </svg>
-          }
-        />
-        <StatCard
           label={t("waiting")}
           value={waiting}
           color="warning"
@@ -199,28 +179,20 @@ export default async function ReceptionistPage({
       {/* Queue status bar */}
       <Card>
         <CardHeader>
-          <h2 className="text-sm font-semibold">
-            {t("queueToday")}
-          </h2>
+          <h2 className="text-sm font-semibold">{t("queueToday")}</h2>
         </CardHeader>
         <CardBody className="grid grid-cols-3 gap-3">
           <div className="text-center p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
             <p className="text-2xl font-bold text-yellow-600">{waiting}</p>
-            <p className="text-xs text-muted mt-1">
-              {t("waiting")}
-            </p>
+            <p className="text-xs text-muted mt-1">{t("waiting")}</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
             <p className="text-2xl font-bold text-blue-600">{inProgress}</p>
-            <p className="text-xs text-muted mt-1">
-              {t("inProgress")}
-            </p>
+            <p className="text-xs text-muted mt-1">{t("inProgress")}</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-green-500/10 border border-green-500/20">
             <p className="text-2xl font-bold text-green-600">{completed}</p>
-            <p className="text-xs text-muted mt-1">
-              {t("completed")}
-            </p>
+            <p className="text-xs text-muted mt-1">{t("completed")}</p>
           </div>
         </CardBody>
       </Card>
@@ -230,9 +202,7 @@ export default async function ReceptionistPage({
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">
-                {t("nextAppointments")}
-              </h2>
+              <h2 className="text-sm font-semibold">{t("nextAppointments")}</h2>
               <Link
                 href={`/${locale}/dashboard/receptionist/appointments`}
                 className="text-xs text-primary hover:underline"
@@ -265,9 +235,7 @@ export default async function ReceptionistPage({
                         )}
                       </p>
                     </div>
-                    <Badge variant="default">
-                      {t("badgeWaiting")}
-                    </Badge>
+                    <Badge variant="default">{t("badgeWaiting")}</Badge>
                   </div>
                 ))}
               </div>
