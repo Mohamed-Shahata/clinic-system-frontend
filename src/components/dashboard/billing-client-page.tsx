@@ -428,10 +428,12 @@ export function BillingClientPage({
   invoices: initial,
   patients,
   locale,
+  canExport = true,
 }: {
   invoices: Invoice[];
   patients: Patient[];
   locale: string;
+  canExport?: boolean;
 }) {
   const isAr = locale === "ar";
   const { addToast } = useToast();
@@ -523,9 +525,11 @@ export function BillingClientPage({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={exportCsv}>
-            {isAr ? "تصدير CSV" : "Export CSV"}
-          </Button>
+          {canExport && (
+            <Button variant="secondary" onClick={exportCsv}>
+              {isAr ? "تصدير CSV" : "Export CSV"}
+            </Button>
+          )}
           <Button onClick={() => setShowCreate(true)}>
             {isAr ? "+ فاتورة جديدة" : "+ New Invoice"}
           </Button>

@@ -36,11 +36,7 @@ export default async function BillingPage({
           data: Array<{ id: string; code: string; fullName: string }>;
           nextCursor: string | null;
         }
-    >(
-      token,
-      "/api/patients",
-      [],
-    ),
+    >(token, "/api/patients", []),
     api<unknown[]>(token, "/api/billing/invoices", []),
   ]);
   // FIX: Backend patient list is paginated; unwrap first page for billing form.
@@ -53,6 +49,7 @@ export default async function BillingPage({
       patients={patients}
       invoices={invoices as never}
       locale={locale}
+      canExport={false}
     />
   );
 }
