@@ -315,9 +315,10 @@ export function PatientDetailClient({ locale, patient }: Props) {
   }
 
   function exportPDF() {
-    const isArLang = locale === "ar";
-    const dir = isArLang ? "rtl" : "ltr";
-    const lang = isArLang ? "ar" : "en";
+    // PDF is always in English regardless of UI locale
+    const isArLang = false;
+    const dir = "ltr";
+    const lang = "en";
 
     const medsHTML = prescriptions
       .map((p) => {

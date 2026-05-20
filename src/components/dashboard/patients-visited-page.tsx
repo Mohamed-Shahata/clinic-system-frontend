@@ -2,7 +2,15 @@
 
 import { useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
-import { Badge, Button, Card, CardBody, CardHeader, EmptyState, Input } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  Input,
+} from "@/components/ui";
 
 type Patient = {
   id: string;
@@ -24,7 +32,7 @@ type Appointment = {
 const PAGE_SIZE = 10;
 
 export function PatientsVisitedPage({
-  patients,
+  patients: patientsProp,
   appointments,
   locale,
 }: {
@@ -37,6 +45,13 @@ export function PatientsVisitedPage({
   const [search, setSearch] = useState("");
   const [daysFilter, setDaysFilter] = useState("1");
   const [page, setPage] = useState(1);
+
+  // Guard: ensure patients is always a plain array regardless of server response shape
+  const patients: Patient[] = Array.isArray(patientsProp)
+    ? patientsProp
+    : Array.isArray((patientsProp as { data?: Patient[] })?.data)
+      ? (patientsProp as { data: Patient[] }).data
+      : [];
 
   const statusLabels: Record<string, string> = {
     IN_QUEUE: t("statusBooked"),
@@ -96,7 +111,9 @@ export function PatientsVisitedPage({
     start.setDate(start.getDate() - (days - 1));
     result = result.filter((p) => {
       const apts = aptsByPatient.get(p.id) ?? [];
-      return apts.some((a) => new Date(a.startsAt).getTime() >= start.getTime());
+      return apts.some(
+        (a) => new Date(a.startsAt).getTime() >= start.getTime(),
+      );
     });
 
     return result;
@@ -115,7 +132,9 @@ export function PatientsVisitedPage({
     <div className="space-y-6">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-foreground">{t("title")}</h1>
+          <h1 className="text-xl font-semibold text-foreground">
+            {t("title")}
+          </h1>
           <p className="text-sm text-muted mt-0.5">{t("description")}</p>
         </div>
       </div>
@@ -176,7 +195,10 @@ export function PatientsVisitedPage({
                   start.setHours(0, 0, 0, 0);
                   start.setDate(start.getDate() - (days - 1));
                   const relevantApt = daysFilter
-                    ? (apts.find((a) => new Date(a.startsAt).getTime() >= start.getTime()) ?? apts[0])
+                    ? (apts.find(
+                        (a) =>
+                          new Date(a.startsAt).getTime() >= start.getTime(),
+                      ) ?? apts[0])
                     : apts[0];
                   const latestStatus = relevantApt?.status;
 
@@ -205,8 +227,7 @@ export function PatientsVisitedPage({
                             {relevantApt && (
                               <>
                                 {" · "}
-                                {relevantApt.doctor?.fullName ??
-                                  t("noDoctor")}
+                                {relevantApt.doctor?.fullName ?? t("noDoctor")}
                                 {" · "}
                                 {new Date(
                                   relevantApt.startsAt,
@@ -216,9 +237,7 @@ export function PatientsVisitedPage({
                           </p>
                         </div>
                         <div className="text-end shrink-0">
-                          <p className="text-xs text-muted">
-                            {t("visits")}
-                          </p>
+                          <p className="text-xs text-muted">{t("visits")}</p>
                           <p className="text-sm font-semibold text-foreground">
                             {apts.length}
                           </p>
@@ -233,7 +252,10 @@ export function PatientsVisitedPage({
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-5 py-3 border-t border-card-border">
                   <span className="text-xs text-muted">
-                    {t("page", { current: String(page), total: String(totalPages) })}
+                    {t("page", {
+                      current: String(page),
+                      total: String(totalPages),
+                    })}
                   </span>
                   <div className="flex gap-2">
                     <Button

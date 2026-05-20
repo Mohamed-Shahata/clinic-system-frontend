@@ -29,10 +29,12 @@ export function PatientsClientPage({
   patients,
   latestStatusMap,
   locale,
+  canExport = true,
 }: {
   patients: Patient[];
   latestStatusMap: Record<string, string>;
   locale: string;
+  canExport?: boolean;
 }) {
   const isAr = locale === "ar";
   const [search, setSearch] = useState("");
@@ -70,12 +72,16 @@ export function PatientsClientPage({
     if (!nextCursor) return;
     setLoadingMore(true);
     try {
-      const res = await fetch(`/api/patients?cursor=${encodeURIComponent(nextCursor)}&limit=50`);
+      const res = await fetch(
+        `/api/patients?cursor=${encodeURIComponent(nextCursor)}&limit=50`,
+      );
       const payload = await res.json();
       // FIX: Append paginated patient rows from the new backend response shape.
-      const more = Array.isArray(payload) ? payload : payload.data ?? [];
+      const more = Array.isArray(payload) ? payload : (payload.data ?? []);
       setRows((current) => [...current, ...more]);
-      setNextCursor(Array.isArray(payload) ? null : payload.nextCursor ?? null);
+      setNextCursor(
+        Array.isArray(payload) ? null : (payload.nextCursor ?? null),
+      );
     } finally {
       setLoadingMore(false);
     }
@@ -109,9 +115,11 @@ export function PatientsClientPage({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="secondary" onClick={exportCsv}>
-            {isAr ? "تصدير CSV" : "Export CSV"}
-          </Button>
+          {canExport && (
+            <Button variant="secondary" onClick={exportCsv}>
+              {isAr ? "تصدير CSV" : "Export CSV"}
+            </Button>
+          )}
           <CreatePatientButton allowMedicalNotes={false} />
         </div>
       </div>

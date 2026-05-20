@@ -26,6 +26,8 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
   const [frequency, setFrequency] = useState("");
   const [category, setCategory] = useState("");
   const [notes, setNotes] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function load() {
     const res = await fetch(
@@ -41,29 +43,39 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    await fetch(`/api/prescriptions/catalog/${kind}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(
-        kind === "medications"
-          ? { name, dose, frequency }
-          : { name, category, notes },
-      ),
-    });
-    setName("");
-    setDose("");
-    setFrequency("");
-    setCategory("");
-    setNotes("");
-    setShowModal(false);
-    await load();
+    setSubmitting(true);
+    try {
+      await fetch(`/api/prescriptions/catalog/${kind}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          kind === "medications"
+            ? { name, dose, frequency }
+            : { name, category, notes },
+        ),
+      });
+      setName("");
+      setDose("");
+      setFrequency("");
+      setCategory("");
+      setNotes("");
+      setShowModal(false);
+      await load();
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function remove(id: string) {
-    await fetch(`/api/prescriptions/catalog/${kind}/${id}`, {
-      method: "DELETE",
-    });
-    await load();
+    setDeletingId(id);
+    try {
+      await fetch(`/api/prescriptions/catalog/${kind}/${id}`, {
+        method: "DELETE",
+      });
+      await load();
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   const title =
@@ -128,9 +140,25 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
                       type="button"
                       variant="danger"
                       size="sm"
+                      disabled={deletingId === item.id}
                       onClick={() => void remove(item.id)}
                     >
-                      {t("delete")}
+                      {deletingId === item.id ? (
+                        <svg
+                          className="animate-spin"
+                          width="12"
+                          height="12"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        >
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
+                      ) : (
+                        t("delete")
+                      )}
                     </Button>
                   </div>
                 ))
@@ -193,7 +221,26 @@ export function CatalogManager({ kind }: { kind: CatalogKind }) {
             >
               {t("cancel")}
             </Button>
-            <Button type="submit">{t("create")}</Button>
+            <Button type="submit" disabled={submitting}>
+              {submitting ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <svg
+                    className="animate-spin"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  >
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                  </svg>
+                </span>
+              ) : (
+                t("create")
+              )}
+            </Button>
           </div>
         </form>
       </Modal>

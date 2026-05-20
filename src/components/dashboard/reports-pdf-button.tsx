@@ -38,13 +38,14 @@ export function ReportsPdfButton({
     const marginR = 18;
     const contentW = pageW - marginL - marginR;
     const today = new Date();
-    const dateLocale = isAr ? "ar-EG" : "en-GB";
-    const dateStr = today.toLocaleDateString(dateLocale, {
+    // Always English in PDF regardless of UI locale
+    const dateLocale = "en-GB";
+    const dateStr = today.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "long",
       year: "numeric",
     });
-    const timeStr = today.toLocaleTimeString(dateLocale, {
+    const timeStr = today.toLocaleTimeString("en-GB", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -62,8 +63,16 @@ export function ReportsPdfButton({
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(`${isAr ? "Clinic" : "Clinic"}: ${clinicName ?? "—"}`, marginL, 25);
-    doc.text(`${isAr ? "Generated" : "Generated"}: ${dateStr}  ${timeStr}`, marginL, 31);
+    doc.text(
+      `${isAr ? "Clinic" : "Clinic"}: ${clinicName ?? "—"}`,
+      marginL,
+      25,
+    );
+    doc.text(
+      `${isAr ? "Generated" : "Generated"}: ${dateStr}  ${timeStr}`,
+      marginL,
+      31,
+    );
 
     y = 48;
 
@@ -109,9 +118,18 @@ export function ReportsPdfButton({
         label: isAr ? "Revenue" : "Total Revenue",
         value: `${revenue.toLocaleString(dateLocale)} EGP`,
       },
-      { label: isAr ? "Invoices" : "Invoices Issued", value: invoicesCount.toLocaleString(dateLocale) },
-      { label: isAr ? "Completed" : "Completed Visits", value: completedCount.toLocaleString(dateLocale) },
-      { label: isAr ? "Pending" : "Pending Appointments", value: pendingCount.toLocaleString(dateLocale) },
+      {
+        label: isAr ? "Invoices" : "Invoices Issued",
+        value: invoicesCount.toLocaleString(dateLocale),
+      },
+      {
+        label: isAr ? "Completed" : "Completed Visits",
+        value: completedCount.toLocaleString(dateLocale),
+      },
+      {
+        label: isAr ? "Pending" : "Pending Appointments",
+        value: pendingCount.toLocaleString(dateLocale),
+      },
     ];
     const boxW = contentW / 2 - 3;
     const boxH = 18;
@@ -158,9 +176,14 @@ export function ReportsPdfButton({
 
         doc.setTextColor(20, 20, 20);
         doc.setFont("helvetica", "bold");
-        doc.text(`${amount.toLocaleString(dateLocale)} EGP`, pageW - marginR, y, {
-          align: "right",
-        });
+        doc.text(
+          `${amount.toLocaleString(dateLocale)} EGP`,
+          pageW - marginR,
+          y,
+          {
+            align: "right",
+          },
+        );
         y += 9;
         if (y > 270) {
           doc.addPage();
@@ -183,32 +206,34 @@ export function ReportsPdfButton({
         VODAFONE_CASH: "Vodafone Cash",
       };
       paymentEntries
-        .filter(([method]) => ["cash", "vodafone_cash", "CASH", "VODAFONE_CASH"].includes(method))
+        .filter(([method]) =>
+          ["cash", "vodafone_cash", "CASH", "VODAFONE_CASH"].includes(method),
+        )
         .forEach(([method, amount]) => {
-        const pct = totalPay > 0 ? Math.round((amount / totalPay) * 100) : 0;
-        const barW = (amount / (totalPay || 1)) * (contentW - 60);
-        doc.setFillColor(99, 162, 235);
-        doc.rect(marginL + 28, y - 4, barW, 5, "F");
+          const pct = totalPay > 0 ? Math.round((amount / totalPay) * 100) : 0;
+          const barW = (amount / (totalPay || 1)) * (contentW - 60);
+          doc.setFillColor(99, 162, 235);
+          doc.rect(marginL + 28, y - 4, barW, 5, "F");
 
-        doc.setFontSize(9);
-        doc.setFont("helvetica", "normal");
-        doc.setTextColor(60, 60, 60);
-        doc.text(labels[method] ?? method, marginL, y);
+          doc.setFontSize(9);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(60, 60, 60);
+          doc.text(labels[method] ?? method, marginL, y);
 
-        doc.setFont("helvetica", "bold");
-        doc.setTextColor(20, 20, 20);
-        doc.text(
-          `${amount.toLocaleString(dateLocale)} EGP  (${pct.toLocaleString(dateLocale)}%)`,
-          pageW - marginR,
-          y,
-          { align: "right" },
-        );
-        y += 9;
-        if (y > 270) {
-          doc.addPage();
-          y = 20;
-        }
-      });
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(20, 20, 20);
+          doc.text(
+            `${amount.toLocaleString(dateLocale)} EGP  (${pct.toLocaleString(dateLocale)}%)`,
+            pageW - marginR,
+            y,
+            { align: "right" },
+          );
+          y += 9;
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+        });
       y += 4;
       divider();
     }
@@ -217,7 +242,10 @@ export function ReportsPdfButton({
     if (casesByDoctor.length > 0) {
       sectionTitle("Cases by Doctor");
       casesByDoctor.forEach((item) => {
-        row(item.doctor, `${item.count.toLocaleString(dateLocale)} ${isAr ? "cases" : "cases"}`);
+        row(
+          item.doctor,
+          `${item.count.toLocaleString(dateLocale)} ${isAr ? "cases" : "cases"}`,
+        );
         if (y > 270) {
           doc.addPage();
           y = 20;

@@ -336,11 +336,12 @@ export default function LoginPage() {
                     autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-muted outline-none ring-primary/30 focus:ring-2 transition-shadow"
+                    className="w-full rounded-lg border border-border bg-surface text-sm text-foreground placeholder:text-muted outline-none ring-primary/30 focus:ring-2 transition-shadow"
                     style={{
                       direction: "ltr",
                       textAlign: isAr ? "right" : "left",
-                      // padding: icon always on the left (ltr start), text on right in AR
+                      paddingTop: "0.625rem",
+                      paddingBottom: "0.625rem",
                       paddingLeft: isAr ? "0.75rem" : "2.75rem",
                       paddingRight: isAr ? "2.75rem" : "0.75rem",
                     }}
@@ -348,9 +349,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((value) => !value)}
-                    className={`absolute top-1/2 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 ${
-                      isAr ? "left-2" : "right-2"
-                    }`}
+                    className={`absolute top-1/2 -translate-y-1/2 inline-flex h-7 w-7 items-center justify-center rounded text-muted transition-colors hover:bg-surface-2 hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 ${isAr ? "left-2" : "right-2"}`}
                     aria-label={
                       showPassword ? "Hide password" : "Show password"
                     }
