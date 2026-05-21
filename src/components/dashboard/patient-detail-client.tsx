@@ -1,6 +1,7 @@
 "use client";
 // @ts-ignore
 import { InstallmentsClient } from "@/components/dashboard/installments-client";
+import { buildPrescriptionHTML } from "@/lib/prescription-templates";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -28,6 +29,9 @@ type Prescription = {
   diagnosis?: string;
   medications: string | object;
   notes?: string;
+  // extended fields — may be present depending on backend include
+  labTests?: string | string[] | null;
+  imaging?: string | string[] | null;
   doctor?: { id: string; fullName: string };
 };
 
@@ -59,11 +63,27 @@ type Patient = {
   attachments?: Attachment[];
 };
 
+type PrescriptionTemplate = {
+  id?: string;
+  header?: {
+    clinicName?: string;
+    logoUrl?: string | null;
+    address?: string;
+    style?: string;
+    [key: string]: unknown;
+  };
+  footer?: {
+    phone?: string;
+    [key: string]: unknown;
+  };
+};
+
 interface Props {
   locale: string;
   patient: Patient;
   clinicLogo?: string | null;
   clinicNameEn?: string | null;
+  template?: PrescriptionTemplate | null;
 }
 
 function statusLabel(status: string, isAr: boolean) {
@@ -267,6 +287,7 @@ export function PatientDetailClient({
   patient,
   clinicLogo,
   clinicNameEn,
+  template,
 }: Props) {
   const isAr = locale === "ar";
   const [activeTab, setActiveTab] = useState<
@@ -322,141 +343,80 @@ export function PatientDetailClient({
   }
 
   function exportPDF() {
-    const isArLang = locale === "ar";
-    const dir = isArLang ? "rtl" : "ltr";
-    const lang = isArLang ? "ar" : "en";
+    // Always English — use the buildPrescriptionHTML template system
+    const prescriptionStyle =
+      (template?.header as { style?: string } | undefined)?.style ?? "classic";
 
-    const medsHTML = prescriptions
-      .map((p) => {
-        const payload = parsePrescriptionPayload(p.medications);
-        const meds = payload.medications;
-        return `
-          <div class="visit-card">
-            <div class="visit-header">
-              <span class="visit-date">${new Date(p.issuedAt).toLocaleDateString(numberLocale(locale))}</span>
-              <span class="visit-doctor">${isArLang ? "د." : "Dr."} ${p.doctor?.fullName ?? "—"}</span>
-            </div>
-            ${meds.length ? `<ul class="med-list">${meds.map((m) => `<li>${m}</li>`).join("")}</ul>` : ""}
-            ${p.diagnosis ? `<p class="notes">${isArLang ? "التشخيص: " : "Diagnosis: "}${p.diagnosis}</p>` : ""}
-            ${payload.notes || p.notes ? `<p class="notes">${payload.notes || p.notes}</p>` : ""}
-          </div>`;
-      })
-      .join("");
+    // Collect all medications from all prescriptions
+    const allMeds: string[] = [];
+    const allLabs: string[] = [];
+    const allImaging: string[] = [];
+    let lastDiagnosis = "";
+    let lastNotes = "";
 
-    const apptHTML = appointments
-      .map(
-        (a) => `
-          <div class="visit-card ${a.status === "COMPLETED" ? "completed" : ""}">
-            <div class="visit-header">
-              <span class="visit-date">${new Date(a.startsAt).toLocaleDateString(numberLocale(locale))}</span>
-              <span class="visit-status">${statusLabel(a.status, isArLang)}</span>
-              <span class="visit-doctor">${isArLang ? "د." : "Dr."} ${a.doctor?.fullName ?? "—"}</span>
-            </div>
-            ${a.notes ? `<p class="notes">${a.notes}</p>` : ""}
-          </div>`,
-      )
-      .join("");
-
-    const html = `<!DOCTYPE html>
-<html lang="${lang}" dir="${dir}">
-<head>
-<meta charset="UTF-8"/>
-<title>${patient.fullName}</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Inter:wght@400;600;700&display=swap');
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: ${isArLang ? "'Cairo', sans-serif" : "'Inter', sans-serif"};
-    background: #fff; color: #1a2035; padding: 32px;
-    font-size: 13px; line-height: 1.6;
-  }
-
-  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1565C0; padding-bottom: 16px; margin-bottom: 24px; }
-  .logo { display: flex; align-items: center; gap: 12px; }
-  .logo-img { width: 48px; height: 48px; object-fit: contain; border-radius: 8px; }
-  .logo-box { width: 48px; height: 48px; background: #1565C0; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-  .logo-cross { color: white; font-size: 26px; font-weight: bold; line-height: 1; }
-  .logo-name { font-size: 17px; font-weight: 700; color: #1565C0; }
-  .logo-sub { font-size: 11px; color: #888; margin-top: 2px; }
-  .patient-info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f0f4ff; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
-  .info-item { }
-  .info-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; }
-  .info-value { font-size: 14px; font-weight: 600; color: #1a2035; margin-top: 2px; }
-  .section-title { font-size: 13px; font-weight: 700; color: #1565C0; text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 10px; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
-  .visit-card { background: #fafbff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 8px; }
-  .visit-card.completed { border-color: #bbf7d0; }
-  .visit-header { display: flex; gap: 12px; align-items: center; margin-bottom: 6px; font-size: 12px; }
-  .visit-date { font-weight: 600; color: #1565C0; }
-  .visit-status { background: #e0f2fe; color: #0369a1; padding: 2px 8px; border-radius: 20px; font-size: 11px; }
-  .visit-doctor { color: #555; }
-  .med-list { padding-${isArLang ? "right" : "left"}: 18px; color: #333; font-size: 12px; }
-  .med-list li { margin-bottom: 2px; }
-  .notes { font-size: 12px; color: #555; margin-top: 6px; font-style: italic; }
-  .print-date { font-size: 11px; color: #999; margin-top: 32px; text-align: center; }
-  @media print { body { padding: 16px; } }
-</style>
-</head>
-<body>
-<div class="header">
-  <div class="logo">
-    ${
-      clinicLogo
-        ? `<img class="logo-img" src="${clinicLogo}" alt="Clinic Logo" />`
-        : `<div class="logo-box"><span class="logo-cross">+</span></div>`
+    for (const p of prescriptions) {
+      const payload = parsePrescriptionPayload(p.medications);
+      allMeds.push(...payload.medications);
+      if (p.labTests) {
+        const labs = Array.isArray(p.labTests)
+          ? (p.labTests as string[])
+          : typeof p.labTests === "string"
+            ? (p.labTests as string).split(",").map((s) => s.trim())
+            : [];
+        allLabs.push(...labs);
+      }
+      if (p.imaging) {
+        const imgs = Array.isArray(p.imaging)
+          ? (p.imaging as string[])
+          : typeof p.imaging === "string"
+            ? (p.imaging as string).split(",").map((s) => s.trim())
+            : [];
+        allImaging.push(...imgs);
+      }
+      if (p.diagnosis && !lastDiagnosis) lastDiagnosis = p.diagnosis;
+      if ((payload.notes || p.notes) && !lastNotes)
+        lastNotes = payload.notes || p.notes || "";
     }
-    <div>
-      <div class="logo-name">${clinicNameEn ?? "Clinic CMS"}</div>
-      <div class="logo-sub">Medical Prescription</div>
-    </div>
-  </div>
-  <div style="text-align:${isArLang ? "left" : "right"}">
-    <div style="font-size:11px;color:#666">${isArLang ? "تاريخ الطباعة" : "Print Date"}</div>
-    <div style="font-size:12px;font-weight:600">${new Date().toLocaleDateString(numberLocale(locale))}</div>
-  </div>
-</div>
 
-<div class="patient-info">
-  <div class="info-item">
-    <div class="info-label">${isArLang ? "الاسم" : "Patient Name"}</div>
-    <div class="info-value">${patient.fullName}</div>
-  </div>
-  ${patient.code ? `<div class="info-item"><div class="info-label">${isArLang ? "الكود" : "Code"}</div><div class="info-value">${patient.code}</div></div>` : ""}
-  ${patient.phone ? `<div class="info-item"><div class="info-label">${isArLang ? "الهاتف" : "Phone"}</div><div class="info-value" dir="ltr">${patient.phone}</div></div>` : ""}
-  ${age !== null ? `<div class="info-item"><div class="info-label">${isArLang ? "العمر" : "Age"}</div><div class="info-value">${formatNumber(age, locale)} ${isArLang ? "سنة" : "years"}</div></div>` : ""}
-  <div class="info-item">
-    <div class="info-label">${isArLang ? "عدد الزيارات" : "Total Visits"}</div>
-    <div class="info-value">${formatNumber(appointments.length, locale)}</div>
-  </div>
-  <div class="info-item">
-    <div class="info-label">${isArLang ? "الوصفات الطبية" : "Prescriptions"}</div>
-    <div class="info-value">${formatNumber(prescriptions.length, locale)}</div>
-  </div>
-</div>
+    const ageNum = patient.dateOfBirth
+      ? Math.floor(
+          (Date.now() - new Date(patient.dateOfBirth).getTime()) /
+            (1000 * 60 * 60 * 24 * 365.25),
+        )
+      : null;
 
-${
-  patient.medicalNotes
-    ? `
-<div class="section-title">${isArLang ? "الملاحظات الطبية" : "Medical Notes"}</div>
-<p style="font-size:13px;color:#333;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px">${patient.medicalNotes}</p>
-`
-    : ""
-}
-
-<div class="section-title">${isArLang ? "سجل الزيارات" : "Visit History"} (${appointments.length})</div>
-${apptHTML || `<p style="color:#999;font-size:12px">${isArLang ? "لا توجد زيارات مسجلة" : "No visits recorded"}</p>`}
-
-${
-  prescriptions.length
-    ? `
-<div class="section-title">${isArLang ? "الوصفات الطبية" : "Prescriptions"} (${prescriptions.length})</div>
-${medsHTML}
-`
-    : ""
-}
-
-<p class="print-date">${isArLang ? "تم الإنشاء بواسطة نظام إدارة العيادة" : "Generated by Clinic CMS"}</p>
-</body>
-</html>`;
+    const html = buildPrescriptionHTML(
+      {
+        patient: {
+          fullName: patient.fullName,
+          code: patient.code,
+          phone: patient.phone,
+          age: ageNum,
+        },
+        doctor: {
+          fullName:
+            prescriptions[0]?.doctor?.fullName ??
+            template?.header?.clinicName ??
+            "—",
+          specialty: undefined,
+        },
+        clinic: {
+          name: clinicNameEn ?? template?.header?.clinicName ?? "Clinic",
+          logoUrl: clinicLogo ?? template?.header?.logoUrl,
+          address: template?.footer?.phone
+            ? undefined
+            : (template?.header as { address?: string } | undefined)?.address,
+          phone: template?.footer?.phone,
+        },
+        diagnosis: lastDiagnosis || undefined,
+        medications: [...new Set(allMeds)],
+        labTests: allLabs.length ? [...new Set(allLabs)] : undefined,
+        imaging: allImaging.length ? [...new Set(allImaging)] : undefined,
+        notes: lastNotes || undefined,
+        issuedAt: prescriptions[0]?.issuedAt ?? new Date().toISOString(),
+      },
+      prescriptionStyle as import("@/lib/prescription-templates").PrescriptionStyle,
+    );
 
     const win = window.open("", "_blank");
     if (!win) return;
@@ -464,7 +424,257 @@ ${medsHTML}
     win.document.close();
     setTimeout(() => {
       win.print();
-    }, 500);
+    }, 600);
+  }
+
+  function exportPatientReport() {
+    const fmtD = (iso: string) =>
+      new Date(iso).toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+
+    const ageNum = patient.dateOfBirth
+      ? Math.floor(
+          (Date.now() - new Date(patient.dateOfBirth).getTime()) /
+            (1000 * 60 * 60 * 24 * 365.25),
+        )
+      : null;
+
+    const completedApts = appointments.filter((a) => a.status === "COMPLETED");
+    const cancelledApts = appointments.filter((a) => a.status === "CANCELLED");
+
+    // Diagnosis frequency
+    const diagFreq: Record<string, number> = {};
+    for (const p of prescriptions) {
+      if (p.diagnosis) diagFreq[p.diagnosis] = (diagFreq[p.diagnosis] ?? 0) + 1;
+    }
+    const diagRows = Object.entries(diagFreq)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(
+        ([d, c]) =>
+          `<tr><td>${d}</td><td style="text-align:center;font-weight:700">${c}x</td></tr>`,
+      )
+      .join("");
+
+    // Med frequency
+    const medFreq: Record<string, number> = {};
+    for (const p of prescriptions) {
+      const payload = parsePrescriptionPayload(p.medications);
+      for (const m of payload.medications) {
+        const name = m.split(" - ")[0].trim();
+        medFreq[name] = (medFreq[name] ?? 0) + 1;
+      }
+    }
+    const medRows = Object.entries(medFreq)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 8)
+      .map(
+        ([m, c]) =>
+          `<tr><td>${m}</td><td style="text-align:center;font-weight:700">${c}x</td></tr>`,
+      )
+      .join("");
+
+    // Lab tests
+    const labSet = new Set<string>();
+    const imgSet = new Set<string>();
+    for (const p of prescriptions) {
+      if (p.labTests) {
+        const labs = Array.isArray(p.labTests)
+          ? (p.labTests as string[])
+          : String(p.labTests)
+              .split(",")
+              .map((s) => s.trim());
+        labs.filter(Boolean).forEach((l) => labSet.add(l));
+      }
+      if (p.imaging) {
+        const imgs = Array.isArray(p.imaging)
+          ? (p.imaging as string[])
+          : String(p.imaging)
+              .split(",")
+              .map((s) => s.trim());
+        imgs.filter(Boolean).forEach((i) => imgSet.add(i));
+      }
+    }
+
+    const clinicN = clinicNameEn ?? template?.header?.clinicName ?? "Clinic";
+    const logoSrc = clinicLogo ?? template?.header?.logoUrl;
+
+    const html = `<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<title>Patient Report — ${patient.fullName}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:#fff;color:#0f172a;font-size:13px;line-height:1.6;padding:36px 48px}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:18px;border-bottom:3px solid #0f2856;margin-bottom:24px}
+  .logo-row{display:flex;align-items:center;gap:12px}
+  .logo-img{width:48px;height:48px;object-fit:contain;border-radius:8px}
+  .logo-box{width:48px;height:48px;background:#0f2856;border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:24px;font-weight:700}
+  .clinic-name{font-size:18px;font-weight:700;color:#0f2856}
+  .clinic-sub{font-size:11px;color:#64748b;margin-top:2px}
+  .report-label{background:#0f2856;color:#fff;padding:8px 16px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;letter-spacing:.06em}
+  .patient-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;background:#f1f5f9;border-radius:12px;padding:16px;margin-bottom:24px}
+  .kpi{text-align:center;padding:12px 8px;background:#fff;border-radius:10px;border:1px solid #e2e8f0}
+  .kpi-val{font-size:22px;font-weight:700;color:#0f2856}
+  .kpi-lbl{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-top:3px}
+  .section{margin-bottom:22px}
+  h3{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#0f2856;padding:6px 10px;background:#eff6ff;border-left:4px solid #2563eb;border-radius:0 6px 6px 0;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th{background:#f8fafc;color:#475569;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding:7px 12px;border-bottom:2px solid #e2e8f0;text-align:left}
+  td{padding:7px 12px;border-bottom:1px solid #f1f5f9;color:#1e293b}
+  tr:nth-child(even) td{background:#fafbff}
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+  .badge-done{background:#d1fae5;color:#065f46}
+  .badge-cancel{background:#fee2e2;color:#991b1b}
+  .badge-pending{background:#fef3c7;color:#92400e}
+  .timeline{border-left:2px solid #e2e8f0;margin-left:8px;padding-left:16px}
+  .tl-item{position:relative;margin-bottom:10px;padding:8px 12px;background:#fafbff;border:1px solid #e2e8f0;border-radius:8px}
+  .tl-dot{position:absolute;left:-23px;top:12px;width:10px;height:10px;border-radius:50%;background:#2563eb;border:2px solid #fff}
+  .chips{display:flex;flex-wrap:wrap;gap:6px}
+  .chip{padding:3px 10px;background:#eff6ff;border:1px solid #c7d7f7;border-radius:20px;font-size:11px;color:#1e40af}
+  .footer{margin-top:32px;padding-top:14px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:10px;color:#94a3b8}
+  @media print{body{padding:24px}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-row">
+    ${logoSrc ? `<img class="logo-img" src="${logoSrc}" alt="logo">` : `<div class="logo-box">+</div>`}
+    <div>
+      <div class="clinic-name">${clinicN}</div>
+      <div class="clinic-sub">Patient Medical Report</div>
+    </div>
+  </div>
+  <div>
+    <div class="report-label">PATIENT REPORT</div>
+    <div style="text-align:right;font-size:10px;color:#64748b;margin-top:6px">${fmtD(new Date().toISOString())}</div>
+  </div>
+</div>
+
+<!-- KPI cards -->
+<div class="patient-grid">
+  <div class="kpi"><div class="kpi-val">${appointments.length}</div><div class="kpi-lbl">Total Visits</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:#10b981">${completedApts.length}</div><div class="kpi-lbl">Completed</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:#f59e0b">${prescriptions.length}</div><div class="kpi-lbl">Prescriptions</div></div>
+  <div class="kpi"><div class="kpi-val" style="color:#6366f1">${cancelledApts.length}</div><div class="kpi-lbl">Cancelled</div></div>
+</div>
+
+<!-- Patient info -->
+<div class="section">
+  <h3>Patient Information</h3>
+  <table>
+    <tr><th style="width:40%">Field</th><th>Details</th></tr>
+    <tr><td>Full Name</td><td><b>${patient.fullName}</b></td></tr>
+    ${patient.code ? `<tr><td>Patient Code</td><td style="font-family:monospace">${patient.code}</td></tr>` : ""}
+    ${ageNum !== null ? `<tr><td>Age</td><td>${ageNum} years old</td></tr>` : ""}
+    ${patient.phone ? `<tr><td>Phone</td><td dir="ltr">${patient.phone}</td></tr>` : ""}
+    ${patient.dateOfBirth ? `<tr><td>Date of Birth</td><td>${fmtD(patient.dateOfBirth)}</td></tr>` : ""}
+    ${patient.medicalNotes ? `<tr><td>Medical Notes</td><td style="color:#b45309;font-style:italic">${patient.medicalNotes}</td></tr>` : ""}
+  </table>
+</div>
+
+${
+  diagRows
+    ? `
+<div class="section">
+  <h3>Diagnosis History (Most Frequent)</h3>
+  <table>
+    <tr><th>Diagnosis</th><th style="text-align:center">Occurrences</th></tr>
+    ${diagRows}
+  </table>
+</div>`
+    : ""
+}
+
+${
+  medRows
+    ? `
+<div class="section">
+  <h3>Medications Summary</h3>
+  <table>
+    <tr><th>Medication</th><th style="text-align:center">Prescribed</th></tr>
+    ${medRows}
+  </table>
+</div>`
+    : ""
+}
+
+${
+  labSet.size > 0
+    ? `
+<div class="section">
+  <h3>Lab Tests Ordered</h3>
+  <div class="chips">${[...labSet].map((l) => `<span class="chip">🔬 ${l}</span>`).join("")}</div>
+</div>`
+    : ""
+}
+
+${
+  imgSet.size > 0
+    ? `
+<div class="section">
+  <h3>Imaging Ordered</h3>
+  <div class="chips">${[...imgSet].map((i) => `<span class="chip">📷 ${i}</span>`).join("")}</div>
+</div>`
+    : ""
+}
+
+<!-- Visit Timeline (last 10) -->
+${
+  appointments.length > 0
+    ? `
+<div class="section">
+  <h3>Visit Timeline (Latest ${Math.min(appointments.length, 10)})</h3>
+  <div class="timeline">
+    ${appointments
+      .slice(0, 10)
+      .map((a) => {
+        const badgeClass =
+          a.status === "COMPLETED"
+            ? "badge-done"
+            : a.status === "CANCELLED"
+              ? "badge-cancel"
+              : "badge-pending";
+        const statusTxt =
+          a.status === "COMPLETED"
+            ? "Completed"
+            : a.status === "CANCELLED"
+              ? "Cancelled"
+              : a.status.replace("_", " ");
+        return `<div class="tl-item">
+        <div class="tl-dot"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;font-weight:600">${fmtD(a.startsAt)}</span>
+          <span class="badge ${badgeClass}">${statusTxt}</span>
+        </div>
+        ${a.doctor?.fullName ? `<div style="font-size:11px;color:#64748b;margin-top:3px">Dr. ${a.doctor.fullName}</div>` : ""}
+        ${a.notes ? `<div style="font-size:11px;color:#475569;margin-top:4px;font-style:italic">${a.notes}</div>` : ""}
+      </div>`;
+      })
+      .join("")}
+  </div>
+</div>`
+    : ""
+}
+
+<div class="footer">
+  <div>Generated by Clinic Management System · ${fmtD(new Date().toISOString())} · Confidential</div>
+  <div>Dr. _______________________ Signature</div>
+</div>
+
+</body></html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 600);
   }
 
   async function uploadAttachment(file: File | null) {
@@ -565,6 +775,27 @@ ${medsHTML}
             <line x1="9" y1="15" x2="15" y2="15" />
           </svg>
           {isAr ? "إصدار ملف" : "Generate File"}
+        </button>
+        <button
+          type="button"
+          onClick={exportPatientReport}
+          className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium text-foreground hover:bg-surface-2 transition-colors"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
+          </svg>
+          {isAr ? "تقرير المريض" : "Patient Report"}
         </button>
       </div>
 
