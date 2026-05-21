@@ -62,6 +62,8 @@ type Patient = {
 interface Props {
   locale: string;
   patient: Patient;
+  clinicLogo?: string | null;
+  clinicNameEn?: string | null;
 }
 
 function statusLabel(status: string, isAr: boolean) {
@@ -260,7 +262,12 @@ function sameDay(a: string, b: string): boolean {
   return new Date(a).toDateString() === new Date(b).toDateString();
 }
 
-export function PatientDetailClient({ locale, patient }: Props) {
+export function PatientDetailClient({
+  locale,
+  patient,
+  clinicLogo,
+  clinicNameEn,
+}: Props) {
   const isAr = locale === "ar";
   const [activeTab, setActiveTab] = useState<
     "timeline" | "prescriptions" | "attachments" | "installments"
@@ -315,10 +322,9 @@ export function PatientDetailClient({ locale, patient }: Props) {
   }
 
   function exportPDF() {
-    // PDF is always in English regardless of UI locale
-    const isArLang = false;
-    const dir = "ltr";
-    const lang = "en";
+    const isArLang = locale === "ar";
+    const dir = isArLang ? "rtl" : "ltr";
+    const lang = isArLang ? "ar" : "en";
 
     const medsHTML = prescriptions
       .map((p) => {
@@ -366,10 +372,12 @@ export function PatientDetailClient({ locale, patient }: Props) {
   }
 
   .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #1565C0; padding-bottom: 16px; margin-bottom: 24px; }
-  .logo { display: flex; align-items: center; gap: 8px; }
-  .logo-box { width: 36px; height: 36px; background: #1565C0; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
-  .logo-cross { color: white; font-size: 22px; font-weight: bold; line-height: 1; }
-  .logo-name { font-size: 16px; font-weight: 700; color: #1565C0; }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-img { width: 48px; height: 48px; object-fit: contain; border-radius: 8px; }
+  .logo-box { width: 48px; height: 48px; background: #1565C0; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+  .logo-cross { color: white; font-size: 26px; font-weight: bold; line-height: 1; }
+  .logo-name { font-size: 17px; font-weight: 700; color: #1565C0; }
+  .logo-sub { font-size: 11px; color: #888; margin-top: 2px; }
   .patient-info { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; background: #f0f4ff; border-radius: 12px; padding: 16px; margin-bottom: 24px; }
   .info-item { }
   .info-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; }
@@ -391,8 +399,15 @@ export function PatientDetailClient({ locale, patient }: Props) {
 <body>
 <div class="header">
   <div class="logo">
-    <div class="logo-box"><span class="logo-cross">+</span></div>
-    <span class="logo-name">${isArLang ? "نظام إدارة العيادة" : "Clinic CMS"}</span>
+    ${
+      clinicLogo
+        ? `<img class="logo-img" src="${clinicLogo}" alt="Clinic Logo" />`
+        : `<div class="logo-box"><span class="logo-cross">+</span></div>`
+    }
+    <div>
+      <div class="logo-name">${clinicNameEn ?? "Clinic CMS"}</div>
+      <div class="logo-sub">Medical Prescription</div>
+    </div>
   </div>
   <div style="text-align:${isArLang ? "left" : "right"}">
     <div style="font-size:11px;color:#666">${isArLang ? "تاريخ الطباعة" : "Print Date"}</div>

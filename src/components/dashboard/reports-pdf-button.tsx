@@ -6,6 +6,7 @@ import { Button } from "@/components/ui";
 type ReportsPdfButtonProps = {
   locale: string;
   clinicName?: string;
+  clinicNameEn?: string; // English/Latin version of clinic name (avoids jsPDF Arabic encoding issue)
   revenue: number;
   invoicesCount: number;
   completedCount: number;
@@ -18,6 +19,7 @@ type ReportsPdfButtonProps = {
 export function ReportsPdfButton({
   locale,
   clinicName,
+  clinicNameEn,
   revenue,
   invoicesCount,
   completedCount,
@@ -27,6 +29,14 @@ export function ReportsPdfButton({
   pendingCount = 0,
 }: ReportsPdfButtonProps) {
   const isAr = locale === "ar";
+
+  // jsPDF does not support Arabic Unicode — use English name if available,
+  // otherwise strip non-ASCII characters to prevent garbled text in the PDF.
+  const safeClinicName = clinicNameEn
+    ? clinicNameEn
+    : clinicName
+      ? clinicName.replace(/[^\x00-\x7F]/g, "").trim() || "Clinic"
+      : "Clinic";
   function downloadReport() {
     const doc = new jsPDF({
       orientation: "portrait",
@@ -38,14 +48,13 @@ export function ReportsPdfButton({
     const marginR = 18;
     const contentW = pageW - marginL - marginR;
     const today = new Date();
-    // Always English in PDF regardless of UI locale
-    const dateLocale = "en-GB";
-    const dateStr = today.toLocaleDateString("en-GB", {
+    const dateLocale = isAr ? "ar-EG" : "en-GB";
+    const dateStr = today.toLocaleDateString(dateLocale, {
       day: "2-digit",
       month: "long",
       year: "numeric",
     });
-    const timeStr = today.toLocaleTimeString("en-GB", {
+    const timeStr = today.toLocaleTimeString(dateLocale, {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -59,20 +68,12 @@ export function ReportsPdfButton({
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text(isAr ? "CLINIC REPORT" : "CLINIC PERFORMANCE REPORT", marginL, 17);
+    doc.text("CLINIC PERFORMANCE REPORT", marginL, 17);
 
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
-    doc.text(
-      `${isAr ? "Clinic" : "Clinic"}: ${clinicName ?? "—"}`,
-      marginL,
-      25,
-    );
-    doc.text(
-      `${isAr ? "Generated" : "Generated"}: ${dateStr}  ${timeStr}`,
-      marginL,
-      31,
-    );
+    doc.text(`Clinic: ${safeClinicName}`, marginL, 25);
+    doc.text(`Generated: ${dateStr}  ${timeStr}`, marginL, 31);
 
     y = 48;
 

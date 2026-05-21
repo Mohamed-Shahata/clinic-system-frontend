@@ -16,14 +16,31 @@ export default async function PatientDetailPage({
   const jar = await cookies();
   const token = jar.get("access_token")?.value ?? "";
 
-  const res = await fetch(`${getBackendBaseUrl()}/api/patients/${patientId}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  }).catch(() => null);
+  const [res, clinicRes] = await Promise.all([
+    fetch(`${getBackendBaseUrl()}/api/patients/${patientId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }).catch(() => null),
+    fetch(`${getBackendBaseUrl()}/api/clinics/${session.clinicId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }).catch(() => null),
+  ]);
 
   if (!res || !res.ok) notFound();
   const patient = await res.json().catch(() => null);
   if (!patient) notFound();
 
-  return <PatientDetailClient locale={locale} patient={patient} />;
+  const clinicData = clinicRes?.ok
+    ? await clinicRes.json().catch(() => null)
+    : null;
+
+  return (
+    <PatientDetailClient
+      locale={locale}
+      patient={patient}
+      clinicLogo={clinicData?.logoUrl ?? null}
+      clinicNameEn={clinicData?.nameEn ?? clinicData?.name ?? null}
+    />
+  );
 }
