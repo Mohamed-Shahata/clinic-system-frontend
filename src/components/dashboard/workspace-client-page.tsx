@@ -1,5 +1,8 @@
 "use client";
 
+import { buildPrescriptionHTML } from "@/lib/prescription-templates";
+import type { PrescriptionStyle } from "@/lib/prescription-templates";
+
 // @ts-ignore
 import { InstallmentsClient } from "@/components/dashboard/installments-client";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
@@ -53,7 +56,12 @@ type CatalogMedication = {
 };
 
 type Template = {
-  header?: { clinicName?: string; logoUrl?: string | null; address?: string };
+  header?: {
+    clinicName?: string;
+    logoUrl?: string | null;
+    address?: string;
+    style?: string; // "classic" | "modern" | "minimal"
+  };
   footer?: { phone?: string; workingHours?: string; notes?: string };
 };
 
@@ -592,17 +600,66 @@ export function WorkspaceClientPage({
       );
       return;
     }
+
     const meds = rows
       .filter((row) => row.name.trim())
       .map((row) =>
         [row.name, row.dose, row.frequency].filter(Boolean).join(" - "),
       );
-    const html = `<!doctype html><html lang="${locale}" dir="${isAr ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>${activeItem.patient.fullName}</title><style>body{font-family:Arial,sans-serif;padding:32px;line-height:1.7;color:#111}.head{border-bottom:2px solid #2563eb;padding-bottom:12px;margin-bottom:20px}.muted{color:#666;font-size:12px}.section{margin-top:18px}.label{font-weight:700;color:#2563eb}li{margin-bottom:4px}</style></head><body><div class="head"><h2>${template?.header?.clinicName ?? ""}</h2><div>${doctorInfo.fullName}</div><div class="muted">${new Date().toLocaleDateString(isAr ? "ar-EG" : "en-GB")}</div></div><h3>${activeItem.patient.fullName}</h3>${diagnosis ? `<div class="section"><span class="label">${L.diagnosis}: </span>${diagnosis}</div>` : ""}${meds.length ? `<div class="section"><div class="label">${L.medications}</div><ul>${meds.map((m) => `<li>${m}</li>`).join("")}</ul></div>` : ""}${requestedTests.filter(Boolean).length ? `<div class="section"><div class="label">${L.tests}</div>${requestedTests.filter(Boolean).join("، ")}</div>` : ""}${requestedImaging.filter(Boolean).length ? `<div class="section"><div class="label">${L.imaging}</div>${requestedImaging.filter(Boolean).join("، ")}</div>` : ""}${notes ? `<div class="section"><span class="label">${L.notesLabel}: </span>${notes}</div>` : ""}</body></html>`;
+
+    const style: PrescriptionStyle =
+      (template?.header?.style as PrescriptionStyle | undefined) ?? "classic";
+
+    // Strip Arabic characters from clinic name — jsPDF/print doesn't support Arabic Unicode
+    const safeClinicName =
+      (template?.header?.clinicName ?? "")
+        .replace(/[^\x00-\x7F]/g, "")
+        .trim() || "Clinic";
+
+    const ageNum = activeItem.patient.dateOfBirth
+      ? Math.floor(
+          (Date.now() - new Date(activeItem.patient.dateOfBirth).getTime()) /
+            (1000 * 60 * 60 * 24 * 365.25),
+        )
+      : null;
+
+    const html = buildPrescriptionHTML(
+      {
+        patient: {
+          fullName: activeItem.patient.fullName,
+          code: activeItem.patient.code,
+          phone: activeItem.patient.phone ?? undefined,
+          age: ageNum,
+        },
+        doctor: {
+          fullName: doctorInfo.fullName,
+          specialty: doctorInfo.specialty ?? undefined,
+        },
+        clinic: {
+          name: safeClinicName,
+          logoUrl: template?.header?.logoUrl ?? null,
+          address: template?.header?.address,
+          phone: template?.footer?.phone,
+        },
+        diagnosis: diagnosis || undefined,
+        medications: meds,
+        labTests: requestedTests.filter(Boolean).length
+          ? requestedTests.filter(Boolean)
+          : undefined,
+        imaging: requestedImaging.filter(Boolean).length
+          ? requestedImaging.filter(Boolean)
+          : undefined,
+        notes: notes || undefined,
+        issuedAt: new Date().toISOString(),
+      },
+      style,
+    );
+
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(html);
     win.document.close();
-    setTimeout(() => win.print(), 300);
+    setTimeout(() => win.print(), 600);
   }
 
   /* ── End visit (IN_PROGRESS → COMPLETED) ── */
