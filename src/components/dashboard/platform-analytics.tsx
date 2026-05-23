@@ -200,7 +200,21 @@ export function PlatformAnalytics({
         <CardBody>
           <Donut
             points={payments.map((p, i) => ({
-              label: p.status,
+              label: isAr
+                ? p.status === "APPROVED"
+                  ? "مقبول"
+                  : p.status === "PENDING"
+                    ? "قيد المراجعة"
+                    : p.status === "REJECTED"
+                      ? "مرفوض"
+                      : p.status
+                : p.status === "APPROVED"
+                  ? "Approved"
+                  : p.status === "PENDING"
+                    ? "Pending"
+                    : p.status === "REJECTED"
+                      ? "Rejected"
+                      : p.status,
               value: p.count,
               color: ["#22c55e", "#f59e0b", "#ef4444"][i % 3],
             }))}
@@ -218,7 +232,21 @@ export function PlatformAnalytics({
         <CardBody>
           <Donut
             points={roles.map((r, i) => ({
-              label: r.role,
+              label: isAr
+                ? r.role === "DOCTOR_ADMIN"
+                  ? "طبيب مدير"
+                  : r.role === "DOCTOR"
+                    ? "طبيب"
+                    : r.role === "RECEPTIONIST"
+                      ? "استقبال"
+                      : r.role
+                : r.role === "DOCTOR_ADMIN"
+                  ? "Doctor Admin"
+                  : r.role === "DOCTOR"
+                    ? "Doctor"
+                    : r.role === "RECEPTIONIST"
+                      ? "Receptionist"
+                      : r.role,
               value: r.count,
               color: ["#06b6d4", "#a855f7", "#f97316"][i % 3],
             }))}
