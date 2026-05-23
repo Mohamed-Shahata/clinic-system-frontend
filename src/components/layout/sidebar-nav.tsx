@@ -151,6 +151,39 @@ export function getNavItems(
           icon: <SettingsIcon />,
         },
       ];
+    case "DOCTOR":
+      return [
+        {
+          href: `${base}/doctor`,
+          label: t("overview"),
+          icon: <GridIcon />,
+        },
+        {
+          href: `${base}/doctor/workspace`,
+          label: t("workspace"),
+          icon: <WorkspaceIcon />,
+        },
+        {
+          href: `${base}/doctor/appointments`,
+          label: t("appointments"),
+          icon: <CalendarIcon />,
+        },
+        {
+          href: `${base}/doctor/patients`,
+          label: t("patients"),
+          icon: <ClipboardIcon />,
+        },
+        {
+          href: `${base}/doctor/billing`,
+          label: t("billing"),
+          icon: <MoneyIcon />,
+        },
+        {
+          href: `${base}/doctor/settings`,
+          label: t("settings"),
+          icon: <SettingsIcon />,
+        },
+      ];
     case "RECEPTIONIST":
       return [
         {
@@ -256,9 +289,11 @@ export function SidebarNav({
     ? t("superAdmin")
     : claims?.role === "DOCTOR_ADMIN"
       ? t("doctorAdmin")
-      : claims?.role === "RECEPTIONIST"
-        ? t("receptionist")
-        : "";
+      : claims?.role === "DOCTOR"
+        ? t("doctor")
+        : claims?.role === "RECEPTIONIST"
+          ? t("receptionist")
+          : "";
 
   return (
     <div className="flex flex-col h-full">

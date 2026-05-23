@@ -16,6 +16,8 @@ export function getDashboardHref(
   switch (claims.role) {
     case "DOCTOR_ADMIN":
       return `/${loc}/dashboard/doctor-admin`;
+    case "DOCTOR":
+      return `/${loc}/dashboard/doctor`;
     case "RECEPTIONIST":
       return `/${loc}/dashboard/receptionist`;
     default:
@@ -63,6 +65,8 @@ export function canAccessDashboardPath(
   switch (claims.role) {
     case "DOCTOR_ADMIN":
       return canAccessRoleDashboardPath(trimmed, "doctorAdmin");
+    case "DOCTOR":
+      return canAccessRoleDashboardPath(trimmed, "doctor");
     case "RECEPTIONIST":
       return canAccessRoleDashboardPath(trimmed, "receptionist");
     default:
