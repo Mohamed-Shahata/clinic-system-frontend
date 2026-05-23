@@ -101,6 +101,11 @@ export function getNavItems(
           icon: <BiPhone />,
         },
         {
+          href: `${base}/doctor-admin/doctors`,
+          label: t("doctors"),
+          icon: <StethoscopeIcon />,
+        },
+        {
           href: `${base}/doctor-admin/patients`,
           label: t("patients"),
           icon: <ClipboardIcon />,
@@ -820,6 +825,24 @@ function ServicesIcon() {
       <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
       <rect x="9" y="3" width="6" height="4" rx="1" />
       <path d="M9 12h6M9 16h4" />
+    </svg>
+  );
+}
+function StethoscopeIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3" />
+      <path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4" />
+      <circle cx="20" cy="10" r="2" />
     </svg>
   );
 }

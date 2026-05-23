@@ -80,6 +80,13 @@ export function CreateDoctorForm({
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [specialty, setSpecialty] = useState("");
+  const [paymentMode, setPaymentMode] = useState<
+    "NONE" | "FIXED_RENT" | "PERCENTAGE"
+  >("NONE");
+  const [fixedRent, setFixedRent] = useState("");
+  const [percentage, setPercentage] = useState("");
+  const [consultationFee, setConsultationFee] = useState("");
+  const [followUpFee, setFollowUpFee] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [handoff, setHandoff] = useState<Handoff | null>(null);
@@ -135,6 +142,31 @@ export function CreateDoctorForm({
         return;
       }
 
+      const createdId = typeof data.id === "string" ? data.id : null;
+
+      // Set payment mode if selected
+      if (createdId && paymentMode !== "NONE") {
+        await fetch(`/api/users/doctors/${createdId}/payment`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            paymentMode,
+            fixedMonthlyRent:
+              paymentMode === "FIXED_RENT" && fixedRent
+                ? Number(fixedRent)
+                : undefined,
+            adminPercentage:
+              paymentMode === "PERCENTAGE" && percentage
+                ? Number(percentage)
+                : undefined,
+            consultationFee: consultationFee
+              ? Number(consultationFee)
+              : undefined,
+            followUpFee: followUpFee ? Number(followUpFee) : undefined,
+          }),
+        });
+      }
+
       const createdEmail =
         typeof data.email === "string" ? data.email : email.trim();
       const createdPhone =
@@ -166,6 +198,11 @@ export function CreateDoctorForm({
       setPhone("");
       setPassword("");
       setSpecialty("");
+      setPaymentMode("NONE");
+      setFixedRent("");
+      setPercentage("");
+      setConsultationFee("");
+      setFollowUpFee("");
       onSuccess?.();
     } finally {
       setPending(false);
@@ -258,6 +295,88 @@ export function CreateDoctorForm({
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* ── رسوم الكشف ── */}
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Input
+                label={isAr ? "رسوم الكشف" : "Consultation Fee"}
+                type="number"
+                min={0}
+                placeholder="0"
+                value={consultationFee}
+                onChange={(e) => setConsultationFee(e.target.value)}
+              />
+              <Input
+                label={isAr ? "رسوم المتابعة" : "Follow-up Fee"}
+                type="number"
+                min={0}
+                placeholder="0"
+                value={followUpFee}
+                onChange={(e) => setFollowUpFee(e.target.value)}
+              />
+            </div>
+
+            {/* ── Payment mode ── */}
+            <div>
+              <p className="text-xs font-medium text-foreground mb-2">
+                {isAr ? "آلية الدفع للعيادة" : "Payment Arrangement"}
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {(
+                  [
+                    { value: "NONE", ar: "بدون", en: "None" },
+                    { value: "FIXED_RENT", ar: "إيجار ثابت", en: "Fixed Rent" },
+                    { value: "PERCENTAGE", ar: "نسبة", en: "Percentage" },
+                  ] as {
+                    value: "NONE" | "FIXED_RENT" | "PERCENTAGE";
+                    ar: string;
+                    en: string;
+                  }[]
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setPaymentMode(opt.value)}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-medium border transition-colors ${
+                      paymentMode === opt.value
+                        ? "bg-primary text-primary-fg border-primary"
+                        : "bg-transparent text-muted border-border hover:bg-surface-2"
+                    }`}
+                  >
+                    {isAr ? opt.ar : opt.en}
+                  </button>
+                ))}
+              </div>
+
+              {paymentMode === "FIXED_RENT" && (
+                <div className="mt-3">
+                  <Input
+                    label={isAr ? "الإيجار الشهري" : "Monthly Rent"}
+                    type="number"
+                    min={0}
+                    required
+                    placeholder="0"
+                    value={fixedRent}
+                    onChange={(e) => setFixedRent(e.target.value)}
+                  />
+                </div>
+              )}
+
+              {paymentMode === "PERCENTAGE" && (
+                <div className="mt-3">
+                  <Input
+                    label={isAr ? "نسبة العيادة %" : "Clinic Share %"}
+                    type="number"
+                    min={0}
+                    max={100}
+                    required
+                    placeholder="20"
+                    value={percentage}
+                    onChange={(e) => setPercentage(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
 
             {error && <Alert variant="error">{error}</Alert>}
