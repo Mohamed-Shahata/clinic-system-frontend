@@ -116,6 +116,11 @@ export function getNavItems(
           icon: <ChartIcon />,
         },
         {
+          href: `${base}/doctor-admin/settlements`,
+          label: t("settlements"),
+          icon: <MoneyIcon />,
+        },
+        {
           href: `${base}/doctor-admin/medications`,
           label: t("medications"),
           icon: <PillIcon />,

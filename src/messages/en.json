@@ -107,7 +107,8 @@
       "catalogGroup": "Catalog",
       "workspace": "Workspace",
       "complaints": "Complaints",
-      "siteRating": "Rate Platform"
+      "siteRating": "Rate Platform",
+      "settlements": "Settlements"
     },
     "doctorSettings": {
       "title": "Settings",

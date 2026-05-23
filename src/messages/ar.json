@@ -107,7 +107,8 @@
       "catalogGroup": "كتالوج الطبيب",
       "workspace": "مساحة العمل",
       "complaints": "الشكاوي",
-      "siteRating": "تقييم المنصة"
+      "siteRating": "تقييم المنصة",
+      "settlements": "التسوية"
     },
     "doctorSettings": {
       "title": "الإعدادات",
