@@ -189,6 +189,11 @@ export function getNavItems(
           icon: <MoneyIcon />,
         },
         {
+          href: `${base}/doctor/reports`,
+          label: t("reports"),
+          icon: <ChartIcon />,
+        },
+        {
           href: `${base}/doctor/settings`,
           label: t("settings"),
           icon: <SettingsIcon />,
