@@ -45,16 +45,15 @@ export default async function DoctorAdminAppointmentsPage({
   const jar = await cookies();
   const token = jar.get("access_token")?.value ?? "";
 
-  // DOCTOR_ADMIN sees only their own appointments (backend enforces this)
-  // patients list is also filtered to only their own patients
-  const [patientsPayload, appointments, profile] = await Promise.all([
+  // DOCTOR_ADMIN sees all clinic appointments — fetch all doctors for filter + booking
+  const [patientsPayload, appointments, doctors] = await Promise.all([
     api<
       | Array<{
-        id: string;
-        code: string;
-        fullName: string;
-        phone?: string | null;
-      }>
+          id: string;
+          code: string;
+          fullName: string;
+          phone?: string | null;
+        }>
       | {
           data: Array<{
             id: string;
@@ -66,28 +65,37 @@ export default async function DoctorAdminAppointmentsPage({
         }
     >(token, "/api/patients", []),
     api<Appointment[]>(token, "/api/appointments", []),
-    api<{ fullName?: string }>(token, "/api/users/profile", {}),
+    api<
+      Array<{
+        id: string;
+        fullName: string;
+        specialty: string | null;
+        consultationFee: number | null;
+        followUpFee: number | null;
+        isActive: boolean;
+      }>
+    >(token, "/api/users/doctors", []),
   ]);
-  // FIX: Backend patient list is paginated; unwrap first page for appointment form.
+
   const patients = Array.isArray(patientsPayload)
     ? patientsPayload
     : patientsPayload.data;
 
-  // Lock booking form to self — DOCTOR_ADMIN books for themselves only
-  const selfAsDoctor = session.userId
-    ? [
-        {
-          id: session.userId,
-          fullName: profile.fullName ?? "",
-          specialty: null,
-        },
-      ]
-    : [];
+  // Only active doctors in booking form
+  const activeDoctors = doctors
+    .filter((d) => d.isActive)
+    .map((d) => ({
+      id: d.id,
+      fullName: d.fullName,
+      specialty: d.specialty,
+      consultationFee: d.consultationFee,
+      followUpFee: d.followUpFee,
+    }));
 
   return (
     <AppointmentsClientPage
       patients={patients}
-      doctors={selfAsDoctor}
+      doctors={activeDoctors}
       appointments={appointments}
       locale={locale}
     />

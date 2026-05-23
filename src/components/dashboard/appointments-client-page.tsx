@@ -182,6 +182,10 @@ export function AppointmentsClientPage({
   const todayStr = dateInputValue(new Date());
   const [filterDate, setFilterDate] = useState(todayStr);
   const [filterStatus, setFilterStatus] = useState("ALL");
+  // لو في دكتور واحد بس، فلترة تلقائية عليه — لو أكتر بيبقى ALL
+  const [filterDoctorId, setFilterDoctorId] = useState(
+    doctors.length === 1 ? doctors[0].id : "ALL",
+  );
 
   useEffect(() => setMounted(true), []);
 
@@ -193,6 +197,7 @@ export function AppointmentsClientPage({
       try {
         const params = new URLSearchParams({ date: filterDate });
         if (filterStatus !== "ALL") params.set("status", filterStatus);
+        if (filterDoctorId !== "ALL") params.set("doctorId", filterDoctorId);
         const res = await fetch(`/api/appointments?${params.toString()}`, {
           cache: "no-store",
         });
@@ -204,7 +209,7 @@ export function AppointmentsClientPage({
     void loadAppointments();
     const interval = setInterval(() => void loadAppointments(), 15000);
     return () => clearInterval(interval);
-  }, [filterDate, filterStatus]);
+  }, [filterDate, filterStatus, filterDoctorId]);
 
   // ── BOOKING MODAL STATE ───────────────────────────────────
   const [bookingOpen, setBookingOpen] = useState(false);
@@ -512,8 +517,11 @@ export function AppointmentsClientPage({
     return appointments
       .filter((a) => ALLOWED_STATUSES.includes(a.status))
       .filter((a) => filterStatus === "ALL" || a.status === filterStatus)
-      .filter((a) => dateInputValue(new Date(a.startsAt)) === filterDate);
-  }, [appointments, filterDate, filterStatus]);
+      .filter((a) => dateInputValue(new Date(a.startsAt)) === filterDate)
+      .filter(
+        (a) => filterDoctorId === "ALL" || a.doctor?.id === filterDoctorId,
+      );
+  }, [appointments, filterDate, filterStatus, filterDoctorId]);
 
   const statusLabels: Record<string, string> = {
     IN_QUEUE: isAr ? "قيد الانتظار" : "Waiting",
@@ -760,6 +768,46 @@ export function AppointmentsClientPage({
                   </span>
                 </div>
               </div>
+
+              {/* ── Doctor filter — يظهر بس لو في أكتر من دكتور ── */}
+              {doctors.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-muted shrink-0">
+                    {isAr ? "الطبيب" : "Doctor"}
+                  </label>
+                  <div className="relative flex-1 min-w-0">
+                    <select
+                      value={filterDoctorId}
+                      onChange={(e) => setFilterDoctorId(e.target.value)}
+                      className="w-full appearance-none rounded-lg border border-border bg-surface px-3 py-1.5 pe-7 text-xs text-foreground outline-none focus:ring-2 ring-primary/30 transition-shadow cursor-pointer"
+                    >
+                      <option value="ALL">
+                        {isAr ? "كل الأطباء" : "All Doctors"}
+                      </option>
+                      {doctors.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.fullName}
+                          {d.specialty ? ` — ${d.specialty}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="pointer-events-none absolute inset-y-0 end-2 flex items-center text-muted">
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </CardHeader>
