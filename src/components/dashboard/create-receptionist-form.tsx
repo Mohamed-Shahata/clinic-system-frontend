@@ -130,15 +130,11 @@ export function CreateReceptionistForm({
           {/* Username OR Phone - at least one required */}
           <div className="grid gap-3 sm:grid-cols-2">
             <Input
-              label={isAr ? "اسم المستخدم" : "Username"}
-              placeholder="staff.name"
+              label={isAr ? "البريد الإلكتروني" : "Email"}
+              type="email"
+              placeholder="example@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              hint={
-                isAr
-                  ? "سيتم إنشاء الإيميل تلقائياً: الاسم@clinic.com"
-                  : "Email will be created as username@clinic.com"
-              }
             />
             <PhoneInput
               label={isAr ? "رقم الهاتف" : "Phone"}
@@ -150,8 +146,8 @@ export function CreateReceptionistForm({
           {!email && !phone && (
             <p className="text-xs text-muted -mt-2">
               {isAr
-                ? "* يجب إدخال اسم المستخدم أو رقم الهاتف على الأقل"
-                : "* At least username or phone is required"}
+                ? "* يجب إدخال البريد الإلكتروني أو رقم الهاتف على الأقل"
+                : "* At least email or phone is required"}
             </p>
           )}
 

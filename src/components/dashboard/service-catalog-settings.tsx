@@ -133,9 +133,24 @@ export function ServiceCatalogSettings() {
       </CardHeader>
       <CardBody>
         {loading ? (
-          <p className="py-6 text-center text-sm text-muted">
-            {isAr ? "جاري التحميل..." : "Loading..."}
-          </p>
+          <div className="divide-y divide-[var(--color-border-tertiary)]">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between px-5 py-4 gap-3"
+              >
+                <div className="space-y-1.5 flex-1">
+                  <div className="h-3.5 w-36 animate-pulse rounded bg-border" />
+                  <div className="h-3 w-20 animate-pulse rounded bg-border" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-3.5 w-14 animate-pulse rounded bg-border" />
+                  <div className="h-7 w-7 animate-pulse rounded-lg bg-border" />
+                  <div className="h-7 w-7 animate-pulse rounded-lg bg-border" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : services.length === 0 ? (
           <div className="py-8 text-center space-y-2">
             <p className="text-sm text-muted">

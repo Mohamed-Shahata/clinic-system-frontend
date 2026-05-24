@@ -234,18 +234,14 @@ export function CreateDoctorForm({
               onChange={(e) => setFullName(e.target.value)}
             />
 
-            {/* Username OR Phone */}
+            {/* Email OR Phone */}
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label={isAr ? "اسم المستخدم" : "Username"}
-                placeholder="doctor.name"
+                label={isAr ? "البريد الإلكتروني" : "Email"}
+                type="email"
+                placeholder="doctor@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                hint={
-                  isAr
-                    ? "سيتم إنشاء الإيميل تلقائياً: الاسم@clinic.com"
-                    : "Email will be created as username@clinic.com"
-                }
               />
               <PhoneInput
                 label={isAr ? "رقم الهاتف" : "Phone"}
@@ -257,8 +253,8 @@ export function CreateDoctorForm({
             {!email && !phone && (
               <p className="text-xs text-muted -mt-2">
                 {isAr
-                  ? "* يجب إدخال اسم المستخدم أو رقم الهاتف على الأقل"
-                  : "* At least username or phone is required"}
+                  ? "* يجب إدخال البريد الإلكتروني أو رقم الهاتف على الأقل"
+                  : "* At least email or phone is required"}
               </p>
             )}
 

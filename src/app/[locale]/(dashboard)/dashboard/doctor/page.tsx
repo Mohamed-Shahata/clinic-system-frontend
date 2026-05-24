@@ -8,10 +8,7 @@ async function fetchDoctorStats(token: string) {
   try {
     const res = await fetch(
       `${getBackendBaseUrl()}/api/billing/doctor-monthly-stats`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      },
+      { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" },
     );
     if (!res.ok) return null;
     return res.json();
@@ -40,8 +37,6 @@ export default async function DoctorPage({
 }) {
   const { locale } = await params;
   const session = await getSessionFromCookies();
-
-  // Only DOCTOR role allowed — DOCTOR_ADMIN has their own dashboard
   if (session?.role !== "DOCTOR") redirect(`/${locale}/login`);
 
   const jar = await cookies();

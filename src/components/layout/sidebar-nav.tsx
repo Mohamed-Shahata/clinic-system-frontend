@@ -189,6 +189,21 @@ export function getNavItems(
           icon: <MoneyIcon />,
         },
         {
+          href: `${base}/doctor/medications`,
+          label: t("medications"),
+          icon: <PillIcon />,
+        },
+        {
+          href: `${base}/doctor/imaging`,
+          label: t("imaging"),
+          icon: <ServicesIcon />,
+        },
+        {
+          href: `${base}/doctor/services`,
+          label: t("services"),
+          icon: <StethoscopeIcon />,
+        },
+        {
           href: `${base}/doctor/reports`,
           label: t("reports"),
           icon: <ChartIcon />,

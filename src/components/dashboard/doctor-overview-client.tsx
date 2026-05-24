@@ -69,7 +69,9 @@ function MiniBarChart({
               className="w-full rounded-sm opacity-30"
               style={{
                 height: grossH,
-                backgroundColor: isToday ? "var(--color-primary)" : "var(--color-primary)",
+                backgroundColor: isToday
+                  ? "var(--color-primary)"
+                  : "var(--color-primary)",
               }}
             />
             {/* net bar (foreground, overlayed) */}
@@ -120,10 +122,7 @@ function Donut({
   )`;
   return (
     <div className="relative h-28 w-28 shrink-0">
-      <div
-        className="h-28 w-28 rounded-full"
-        style={{ background: grad }}
-      />
+      <div className="h-28 w-28 rounded-full" style={{ background: grad }} />
       {/* hole */}
       <div className="absolute inset-[18px] rounded-full bg-surface flex flex-col items-center justify-center">
         <span className="text-lg font-bold text-foreground leading-none">
@@ -205,8 +204,32 @@ export function DoctorOverviewClient({
 
   if (!stats) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted text-sm">
-        {isAr ? "لا توجد بيانات بعد." : "No data available yet."}
+      <div className="space-y-6 animate-pulse">
+        {/* header skeleton */}
+        <div className="space-y-1.5">
+          <div className="h-5 w-32 rounded bg-border" />
+          <div className="h-3.5 w-48 rounded bg-border" />
+        </div>
+        {/* stat pills */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-20 rounded-xl bg-border/60" />
+          ))}
+        </div>
+        {/* chart + today */}
+        <div className="grid lg:grid-cols-3 gap-4">
+          <div className="lg:col-span-2 h-44 rounded-xl bg-border/60" />
+          <div className="h-44 rounded-xl bg-border/60" />
+        </div>
+        {/* comparison */}
+        <div className="h-28 rounded-xl bg-border/60" />
+        {/* recent invoices */}
+        <div className="rounded-xl bg-border/60 overflow-hidden">
+          <div className="h-10 bg-border/80" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-12 border-t border-border/40" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -261,7 +284,9 @@ export function DoctorOverviewClient({
           <CardHeader>
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold">
-                {isAr ? "الإيرادات اليومية — الشهر الحالي" : "Daily earnings — this month"}
+                {isAr
+                  ? "الإيرادات اليومية — الشهر الحالي"
+                  : "Daily earnings — this month"}
               </h2>
               <div className="flex items-center gap-3 text-xs text-muted">
                 <span className="flex items-center gap-1">
@@ -301,15 +326,21 @@ export function DoctorOverviewClient({
             />
             <div className="grid grid-cols-3 gap-2 w-full text-center text-xs">
               <div>
-                <p className="text-success font-bold text-base">{stats.todayCompleted}</p>
+                <p className="text-success font-bold text-base">
+                  {stats.todayCompleted}
+                </p>
                 <p className="text-muted">{isAr ? "منتهية" : "Done"}</p>
               </div>
               <div>
-                <p className="text-warning font-bold text-base">{stats.todayInProgress}</p>
+                <p className="text-warning font-bold text-base">
+                  {stats.todayInProgress}
+                </p>
                 <p className="text-muted">{isAr ? "جارية" : "Active"}</p>
               </div>
               <div>
-                <p className="text-foreground font-bold text-base">{stats.todayInQueue}</p>
+                <p className="text-foreground font-bold text-base">
+                  {stats.todayInQueue}
+                </p>
                 <p className="text-muted">{isAr ? "منتظرة" : "Queue"}</p>
               </div>
             </div>
@@ -397,7 +428,9 @@ export function DoctorOverviewClient({
                         {fmt(inv.gross, locale)}
                       </td>
                       <td className="px-4 py-2.5 text-end text-danger">
-                        {inv.deducted > 0 ? `− ${fmt(inv.deducted, locale)}` : "—"}
+                        {inv.deducted > 0
+                          ? `− ${fmt(inv.deducted, locale)}`
+                          : "—"}
                       </td>
                       <td className="px-4 py-2.5 text-end text-success font-semibold">
                         {fmt(inv.net, locale)}

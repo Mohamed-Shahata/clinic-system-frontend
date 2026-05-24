@@ -2,7 +2,14 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Badge, Button, Card, CardBody, CardHeader, Modal } from "@/components/ui";
+import {
+  Badge,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Modal,
+} from "@/components/ui";
 import type { DoctorSettlementRow } from "@/app/[locale]/(dashboard)/dashboard/doctor-admin/settlements/page";
 
 function fmt(n: number, locale: string) {
@@ -58,7 +65,7 @@ type PayModal = {
 };
 
 export function SettlementsClientPage({
-  rows,
+  rows: allRows,
   month,
   locale,
 }: {
@@ -69,6 +76,11 @@ export function SettlementsClientPage({
   const isAr = locale === "ar";
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+
+  // DOCTOR_ADMIN هو صاحب العيادة — مش بيدفع لنفسه
+  const rows = allRows.filter(
+    (r) => !("role" in r) || (r as any).role !== "DOCTOR_ADMIN",
+  );
 
   const [payModal, setPayModal] = useState<PayModal | null>(null);
   const [payStatus, setPayStatus] = useState<"PAID" | "PARTIAL">("PAID");
@@ -126,7 +138,10 @@ export function SettlementsClientPage({
     }
   }
 
-  // Summary totals
+  // DOCTOR_ADMIN هو صاحب العيادة — مش بيدفع لنفسه
+  const rows = allRows.filter((r) => r.status !== undefined);
+
+  // Summary totals — بدون DOCTOR_ADMIN
   const totalRevenue = rows.reduce((s, r) => s + r.totalRevenue, 0);
   const totalClinicShare = rows.reduce((s, r) => s + r.clinicShare, 0);
   const totalPaid = rows.reduce((s, r) => s + r.paidAmount, 0);
@@ -155,7 +170,16 @@ export function SettlementsClientPage({
             disabled={isPending}
             className="p-1.5 rounded-lg border border-border hover:bg-surface-2 transition-colors disabled:opacity-50"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points={isAr ? "9 18 15 12 9 6" : "15 18 9 12 15 6"} />
             </svg>
           </button>
@@ -167,7 +191,16 @@ export function SettlementsClientPage({
             disabled={isPending || month >= currentMonth()}
             className="p-1.5 rounded-lg border border-border hover:bg-surface-2 transition-colors disabled:opacity-40"
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points={isAr ? "15 18 9 12 15 6" : "9 18 15 12 9 6"} />
             </svg>
           </button>
@@ -195,15 +228,22 @@ export function SettlementsClientPage({
           {
             label: isAr ? "متبقي" : "Remaining",
             value: fmt(totalPending, locale),
-            color: totalPending > 0 ? "text-[var(--color-text-danger)]" : "text-[var(--color-text-success)]",
+            color:
+              totalPending > 0
+                ? "text-[var(--color-text-danger)]"
+                : "text-[var(--color-text-success)]",
           },
         ].map((c) => (
           <div
             key={c.label}
             className="bg-[var(--color-background-primary)] border border-[var(--color-border-tertiary)] rounded-xl p-4"
           >
-            <p className="text-xs text-[var(--color-text-secondary)] mb-1">{c.label}</p>
-            <p className={`text-lg font-semibold font-mono ${c.color}`}>{c.value}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] mb-1">
+              {c.label}
+            </p>
+            <p className={`text-lg font-semibold font-mono ${c.color}`}>
+              {c.value}
+            </p>
           </div>
         ))}
       </div>
@@ -213,7 +253,9 @@ export function SettlementsClientPage({
         <Card>
           <CardBody>
             <p className="text-sm text-muted text-center py-8">
-              {isAr ? "لا يمكن عرض تسوية شهر مستقبلي" : "Cannot show settlement for a future month"}
+              {isAr
+                ? "لا يمكن عرض تسوية شهر مستقبلي"
+                : "Cannot show settlement for a future month"}
             </p>
           </CardBody>
         </Card>
@@ -249,7 +291,9 @@ export function SettlementsClientPage({
                           {row.doctorName}
                         </p>
                         {row.specialty && (
-                          <span className="text-xs text-muted">{row.specialty}</span>
+                          <span className="text-xs text-muted">
+                            {row.specialty}
+                          </span>
                         )}
                         <Badge variant={badge.variant}>{badge.label}</Badge>
                         {row.paymentMode && (
@@ -264,17 +308,25 @@ export function SettlementsClientPage({
                       {/* Revenue breakdown */}
                       <div className="grid grid-cols-3 gap-3 text-xs">
                         <div>
-                          <p className="text-muted mb-0.5">{isAr ? "الإيرادات" : "Revenue"}</p>
-                          <p className="font-mono font-medium">{fmt(row.totalRevenue, locale)}</p>
+                          <p className="text-muted mb-0.5">
+                            {isAr ? "الإيرادات" : "Revenue"}
+                          </p>
+                          <p className="font-mono font-medium">
+                            {fmt(row.totalRevenue, locale)}
+                          </p>
                         </div>
                         <div>
-                          <p className="text-muted mb-0.5">{isAr ? "نصيب العيادة" : "Clinic Share"}</p>
+                          <p className="text-muted mb-0.5">
+                            {isAr ? "نصيب العيادة" : "Clinic Share"}
+                          </p>
                           <p className="font-mono font-medium text-[var(--color-text-info)]">
                             {fmt(row.clinicShare, locale)}
                           </p>
                         </div>
                         <div>
-                          <p className="text-muted mb-0.5">{isAr ? "صافي الطبيب" : "Doctor Net"}</p>
+                          <p className="text-muted mb-0.5">
+                            {isAr ? "صافي الطبيب" : "Doctor Net"}
+                          </p>
                           <p className="font-mono font-medium text-[var(--color-text-success)]">
                             {fmt(row.doctorNet, locale)}
                           </p>
@@ -306,17 +358,28 @@ export function SettlementsClientPage({
 
                     {/* Right: action */}
                     <div className="flex items-center gap-2 shrink-0">
-                      {row.clinicShare > 0 && row.status !== "PAID" && !isFutureMonth && (
-                        <Button
-                          size="sm"
-                          variant={row.status === "NOT_SETTLED" || row.status === "PENDING" ? "primary" : "secondary"}
-                          onClick={() => openPayModal(row)}
-                        >
-                          {row.status === "PARTIAL"
-                            ? isAr ? "تسوية باقي" : "Settle Remaining"
-                            : isAr ? "تسجيل دفع" : "Record Payment"}
-                        </Button>
-                      )}
+                      {row.clinicShare > 0 &&
+                        row.status !== "PAID" &&
+                        !isFutureMonth && (
+                          <Button
+                            size="sm"
+                            variant={
+                              row.status === "NOT_SETTLED" ||
+                              row.status === "PENDING"
+                                ? "primary"
+                                : "secondary"
+                            }
+                            onClick={() => openPayModal(row)}
+                          >
+                            {row.status === "PARTIAL"
+                              ? isAr
+                                ? "تسوية باقي"
+                                : "Settle Remaining"
+                              : isAr
+                                ? "تسجيل دفع"
+                                : "Record Payment"}
+                          </Button>
+                        )}
                       {row.status === "PAID" && (
                         <button
                           onClick={() => openPayModal(row)}
@@ -358,20 +421,30 @@ export function SettlementsClientPage({
             {/* Amount info */}
             <div className="bg-[var(--color-background-secondary)] rounded-lg p-3 text-sm space-y-1">
               <div className="flex justify-between">
-                <span className="text-muted">{isAr ? "نصيب العيادة" : "Clinic Share"}</span>
-                <span className="font-mono font-medium">{fmt(payModal.row.clinicShare, locale)}</span>
+                <span className="text-muted">
+                  {isAr ? "نصيب العيادة" : "Clinic Share"}
+                </span>
+                <span className="font-mono font-medium">
+                  {fmt(payModal.row.clinicShare, locale)}
+                </span>
               </div>
               {payModal.row.paidAmount > 0 && (
                 <div className="flex justify-between">
-                  <span className="text-muted">{isAr ? "مدفوع سابقاً" : "Previously Paid"}</span>
-                  <span className="font-mono text-[var(--color-text-success)]">{fmt(payModal.row.paidAmount, locale)}</span>
+                  <span className="text-muted">
+                    {isAr ? "مدفوع سابقاً" : "Previously Paid"}
+                  </span>
+                  <span className="font-mono text-[var(--color-text-success)]">
+                    {fmt(payModal.row.paidAmount, locale)}
+                  </span>
                 </div>
               )}
             </div>
 
             {/* Status */}
             <div>
-              <p className="text-xs font-medium mb-2">{isAr ? "حالة الدفع" : "Payment Status"}</p>
+              <p className="text-xs font-medium mb-2">
+                {isAr ? "حالة الدفع" : "Payment Status"}
+              </p>
               <div className="grid grid-cols-2 gap-2">
                 {(["PAID", "PARTIAL"] as const).map((s) => (
                   <button
@@ -379,7 +452,8 @@ export function SettlementsClientPage({
                     type="button"
                     onClick={() => {
                       setPayStatus(s);
-                      if (s === "PAID") setPayAmount(String(payModal.row.clinicShare));
+                      if (s === "PAID")
+                        setPayAmount(String(payModal.row.clinicShare));
                     }}
                     className={`py-1.5 rounded-lg text-xs font-medium border transition-colors ${
                       payStatus === s
@@ -387,7 +461,13 @@ export function SettlementsClientPage({
                         : "bg-transparent text-muted border-border hover:bg-surface-2"
                     }`}
                   >
-                    {s === "PAID" ? (isAr ? "دفع كامل" : "Full Payment") : (isAr ? "دفع جزئي" : "Partial Payment")}
+                    {s === "PAID"
+                      ? isAr
+                        ? "دفع كامل"
+                        : "Full Payment"
+                      : isAr
+                        ? "دفع جزئي"
+                        : "Partial Payment"}
                   </button>
                 ))}
               </div>
@@ -409,7 +489,9 @@ export function SettlementsClientPage({
 
             {/* Payment method */}
             <div>
-              <p className="text-xs font-medium mb-2">{isAr ? "طريقة الدفع" : "Payment Method"}</p>
+              <p className="text-xs font-medium mb-2">
+                {isAr ? "طريقة الدفع" : "Payment Method"}
+              </p>
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { value: "cash", ar: "كاش", en: "Cash" },

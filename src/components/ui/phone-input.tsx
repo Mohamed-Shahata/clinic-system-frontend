@@ -1,15 +1,13 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 type Country = {
   code: string;
   iso: string;
   name: string;
   flag: string;
-  /** expected local digits count (after country code) */
   digits: number;
-  /** mask pattern e.g. "## #### ####" */
   mask: string;
 };
 
@@ -151,14 +149,6 @@ const COUNTRIES: Country[] = [
     mask: "## ### ####",
   },
   {
-    code: "+252",
-    iso: "SO",
-    name: "الصومال / Somalia",
-    flag: "🇸🇴",
-    digits: 8,
-    mask: "# ### ###",
-  },
-  {
     code: "+1",
     iso: "US",
     name: "USA / Canada",
@@ -199,14 +189,6 @@ const COUNTRIES: Country[] = [
     mask: "### ### ####",
   },
   {
-    code: "+98",
-    iso: "IR",
-    name: "Iran",
-    flag: "🇮🇷",
-    digits: 10,
-    mask: "### ### ####",
-  },
-  {
     code: "+92",
     iso: "PK",
     name: "Pakistan",
@@ -240,7 +222,6 @@ function parseValue(val: string): { country: Country; digits: string } {
 interface PhoneInputProps {
   value: string;
   onChange: (v: string) => void;
-  placeholder?: string;
   required?: boolean;
   id?: string;
   className?: string;
@@ -264,7 +245,9 @@ export function PhoneInput({
   const [localDigits, setLocalDigits] = useState(parsed.digits);
   const [dropOpen, setDropOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [focusedSlot, setFocusedSlot] = useState<number | null>(null);
   const dropRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const isAr = locale === "ar";
 
   useEffect(() => {
@@ -277,12 +260,18 @@ export function PhoneInput({
     return () => document.removeEventListener("mousedown", handler);
   }, [dropOpen]);
 
-  // Sync external value changes
   useEffect(() => {
     const p = parseValue(value);
     setSelectedCountry(p.country);
     setLocalDigits(p.digits);
   }, [value]);
+
+  // Calculate which slot should be focused based on cursor position
+  const updateFocusedSlot = useCallback(() => {
+    if (!inputRef.current) return;
+    const pos = inputRef.current.selectionStart ?? localDigits.length;
+    setFocusedSlot(Math.min(pos, selectedCountry.digits - 1));
+  }, [localDigits.length, selectedCountry.digits]);
 
   function handleLocalChange(raw: string) {
     const digits = raw.replace(/\D/g, "").slice(0, selectedCountry.digits);
@@ -297,13 +286,34 @@ export function PhoneInput({
     onChange(`${c.code}${localDigits}`);
   }
 
+  function handleFocus() {
+    updateFocusedSlot();
+  }
+
+  function handleBlur() {
+    setFocusedSlot(null);
+  }
+
+  function handleKeyUp() {
+    updateFocusedSlot();
+  }
+
+  function handleClick() {
+    updateFocusedSlot();
+  }
+
   const filtered = COUNTRIES.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.code.includes(search),
   );
 
-  const digitSlots = Array.from({ length: selectedCountry.digits });
+  // Responsive: use smaller slots on mobile
+  // Each slot 20px on mobile, 24px on desktop, gap 3px
+  const SLOT_W = 20;
+  const SLOT_GAP = 3;
+  const totalSlotWidth =
+    selectedCountry.digits * SLOT_W + (selectedCountry.digits - 1) * SLOT_GAP;
 
   return (
     <div className={`space-y-2 ${className}`} dir="ltr">
@@ -317,18 +327,20 @@ export function PhoneInput({
         </label>
       )}
 
-      {/* ── Row 1: Country selector ─────────────────────────────── */}
+      {/* ── Country selector ── */}
       <div className="relative" ref={dropRef}>
         <button
           type="button"
           onClick={() => setDropOpen((v) => !v)}
-          className="w-full flex items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm hover:bg-surface-2 transition-colors ring-primary/30 focus:outline-none focus:ring-2"
+          className="w-full flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm hover:bg-surface-2 transition-colors focus:outline-none focus:ring-2 ring-primary/30"
         >
-          <span className="text-lg leading-none">{selectedCountry.flag}</span>
-          <span className="flex-1 text-start text-foreground">
+          <span className="text-base leading-none shrink-0">
+            {selectedCountry.flag}
+          </span>
+          <span className="flex-1 text-start text-foreground truncate text-xs sm:text-sm">
             {selectedCountry.name}
           </span>
-          <span className="font-mono text-xs text-muted">
+          <span className="font-mono text-xs text-muted shrink-0">
             {selectedCountry.code}
           </span>
           <svg
@@ -339,7 +351,7 @@ export function PhoneInput({
             stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
-            className={`text-muted transition-transform ${dropOpen ? "rotate-180" : ""}`}
+            className={`text-muted transition-transform shrink-0 ${dropOpen ? "rotate-180" : ""}`}
           >
             <path d="M2 4l4 4 4-4" />
           </svg>
@@ -364,11 +376,7 @@ export function PhoneInput({
                   <button
                     type="button"
                     onClick={() => handleCountrySelect(c)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 text-start hover:bg-surface-2 transition-colors ${
-                      c.iso === selectedCountry.iso
-                        ? "bg-primary/5 text-primary font-medium"
-                        : "text-foreground"
-                    }`}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 text-start hover:bg-surface-2 transition-colors ${c.iso === selectedCountry.iso ? "bg-primary/5 text-primary font-medium" : "text-foreground"}`}
                   >
                     <span className="text-base shrink-0">{c.flag}</span>
                     <span className="flex-1 text-xs">{c.name}</span>
@@ -388,25 +396,24 @@ export function PhoneInput({
         )}
       </div>
 
-      {/* ── Row 2: Country code badge + digit slots (underline only) ── */}
-      <div className="flex items-end gap-2">
-        {/* Code badge */}
-        <div className="flex items-center gap-1.5 border-b border-border pb-2 shrink-0 select-none">
-          <span className="text-base leading-none">{selectedCountry.flag}</span>
+      {/* ── Digit slots ── */}
+      <div className="flex items-end gap-2 overflow-x-auto pb-1">
+        {/* Country code badge */}
+        <div className="flex items-center gap-1 border-b border-border pb-2 shrink-0 select-none">
+          <span className="text-sm leading-none">{selectedCountry.flag}</span>
           <span className="font-mono text-sm font-medium text-foreground">
             {selectedCountry.code}
           </span>
         </div>
 
-        {/* Fixed-width slots — each slot is 24px wide with 4px gap */}
+        {/* Slots container */}
         <div
-          className="relative pb-0.5"
-          style={{
-            width:
-              selectedCountry.digits * 24 + (selectedCountry.digits - 1) * 4,
-          }}
+          className="relative pb-0.5 shrink-0"
+          style={{ width: totalSlotWidth }}
         >
+          {/* Invisible real input */}
           <input
+            ref={inputRef}
             id={id}
             type="tel"
             inputMode="numeric"
@@ -414,30 +421,46 @@ export function PhoneInput({
             aria-label={label}
             value={localDigits}
             onChange={(e) => handleLocalChange(e.target.value)}
-            className="absolute inset-0 h-full w-full cursor-text bg-transparent text-transparent caret-primary outline-none"
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyUp={handleKeyUp}
+            onClick={handleClick}
+            onSelect={updateFocusedSlot}
+            className="absolute inset-0 h-full w-full cursor-text bg-transparent text-transparent caret-transparent outline-none border-none"
             dir="ltr"
             maxLength={selectedCountry.digits}
+            style={{ caretColor: "transparent" }}
           />
+          {/* Visual slots */}
           <div
             className="grid"
             style={{
-              gridTemplateColumns: `repeat(${selectedCountry.digits}, 24px)`,
-              gap: "4px",
+              gridTemplateColumns: `repeat(${selectedCountry.digits}, ${SLOT_W}px)`,
+              gap: `${SLOT_GAP}px`,
             }}
             aria-hidden="true"
           >
-            {digitSlots.map((_, index) => (
-              <span
-                key={index}
-                className={`flex h-8 w-6 items-center justify-center border-b-2 text-xs font-mono font-semibold tabular-nums transition-colors ${
-                  localDigits[index]
-                    ? "border-primary text-foreground"
-                    : "border-border text-muted/40"
-                }`}
-              >
-                {localDigits[index] ?? ""}
-              </span>
-            ))}
+            {Array.from({ length: selectedCountry.digits }).map((_, index) => {
+              const isCurrent =
+                focusedSlot !== null &&
+                index === Math.min(localDigits.length, focusedSlot);
+              const isFilled = !!localDigits[index];
+              return (
+                <span
+                  key={index}
+                  className={`flex h-8 items-center justify-center border-b-2 text-xs font-mono font-semibold tabular-nums transition-colors duration-100 ${
+                    isCurrent
+                      ? "border-primary"
+                      : isFilled
+                        ? "border-primary/50 text-foreground"
+                        : "border-border text-muted/30"
+                  }`}
+                  style={{ width: SLOT_W }}
+                >
+                  {localDigits[index] ?? ""}
+                </span>
+              );
+            })}
           </div>
         </div>
       </div>
