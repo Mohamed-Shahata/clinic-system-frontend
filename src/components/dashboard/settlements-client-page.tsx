@@ -138,9 +138,6 @@ export function SettlementsClientPage({
     }
   }
 
-  // DOCTOR_ADMIN هو صاحب العيادة — مش بيدفع لنفسه
-  const rows = allRows.filter((r) => r.status !== undefined);
-
   // Summary totals — بدون DOCTOR_ADMIN
   const totalRevenue = rows.reduce((s, r) => s + r.totalRevenue, 0);
   const totalClinicShare = rows.reduce((s, r) => s + r.clinicShare, 0);
