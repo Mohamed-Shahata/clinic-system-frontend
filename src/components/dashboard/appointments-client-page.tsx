@@ -57,17 +57,79 @@ function generatePatientCode() {
   return "PT-" + Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
+function tr(isAr: boolean, ar: string, en: string) {
+  return isAr ? ar : en;
+}
+
+function isTripleName(name: string): boolean {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.length >= 3 && parts.every((part) => part.length >= 2);
+}
+
+function validatePatientCode(value: string, isAr: boolean) {
+  if (!value.trim()) return tr(isAr, "كود المريض مطلوب", "Patient code is required");
+  if (value.length < 2 || value.length > 32 || !/^[A-Za-z0-9_-]+$/.test(value)) {
+    return tr(
+      isAr,
+      "كود المريض يجب أن يكون 2-32 حرفًا أو رقمًا، ويسمح بـ _ و - فقط",
+      "Patient code must be 2-32 letters or numbers, with only _ and - allowed",
+    );
+  }
+  return null;
+}
+
+function validatePhone(value: string, isAr: boolean) {
+  const phone = value.trim();
+  if (!phone) return tr(isAr, "رقم الهاتف مطلوب", "Phone number is required");
+  if (!/^\+?[0-9\s-]{8,20}$/.test(phone)) {
+    return tr(
+      isAr,
+      "رقم الهاتف غير صالح، أدخل 8 إلى 20 رقمًا",
+      "Phone number is invalid, enter 8 to 20 digits",
+    );
+  }
+  return null;
+}
+
 function patientErrorMessage(message: unknown, isAr: boolean) {
   const text = Array.isArray(message)
     ? message.join(" ")
     : String(message ?? "");
+  const lower = text.toLowerCase();
+  if (text.includes("ثلاثي") || text.includes("isTripleName") || lower.includes("full name")) {
+    return tr(
+      isAr,
+      "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)",
+      "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
+    );
+  }
   if (text.includes("code") || text.includes("^[A-Za-z0-9_-]+$")) {
-    return isAr
-      ? "كود المريض مطلوب ويجب أن يكون من 2 إلى 32 حرفًا أو رقمًا فقط"
-      : "Patient code is required and must be 2-32 letters, numbers, underscores, or hyphens";
+    return tr(
+      isAr,
+      "كود المريض مطلوب ويجب أن يكون من 2 إلى 32 حرفًا أو رقمًا فقط",
+      "Patient code is required and must be 2-32 letters, numbers, underscores, or hyphens",
+    );
+  }
+  if (text.includes("phone") || text.includes("هاتف")) {
+    return tr(isAr, "رقم الهاتف مطلوب وغير صالح", "A valid phone number is required");
   }
   if (text.includes("dateOfBirth")) {
     return isAr ? "تاريخ الميلاد غير صالح" : "Date of birth is invalid";
+  }
+  if (lower.includes("already exists") || lower.includes("unique") || lower.includes("duplicate")) {
+    return tr(
+      isAr,
+      "هذا الكود أو رقم الهاتف مسجل بالفعل — جرب كود آخر أو ابحث عن المريض",
+      "This code or phone is already registered — try another code or search for the patient",
+    );
+  }
+  if (
+    lower.includes("fetch") ||
+    lower.includes("network") ||
+    lower.includes("cannot reach") ||
+    lower.includes("econnrefused")
+  ) {
+    return tr(isAr, "خطأ في الاتصال بالخادم — تحقق من الاتصال", "Network error — check your connection");
   }
   return typeof message === "string" && message
     ? message
@@ -240,6 +302,10 @@ export function AppointmentsClientPage({
   const [newCode, setNewCode] = useState(generatePatientCode);
   const [newPhone, setNewPhone] = useState("");
   const [newAge, setNewAge] = useState("");
+  const [newNameError, setNewNameError] = useState<string | null>(null);
+  const [newCodeError, setNewCodeError] = useState<string | null>(null);
+  const [newPhoneError, setNewPhoneError] = useState<string | null>(null);
+  const [newAgeError, setNewAgeError] = useState<string | null>(null);
   const [createPending, setCreatePending] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   // Similar patients found during step 1
@@ -289,6 +355,10 @@ export function AppointmentsClientPage({
     setNewCode(generatePatientCode());
     setNewPhone("");
     setNewAge("");
+    setNewNameError(null);
+    setNewCodeError(null);
+    setNewPhoneError(null);
+    setNewAgeError(null);
     setCreateError(null);
     setStep1Similar([]);
     setStep1SimilarChecked(false);
@@ -359,18 +429,39 @@ export function AppointmentsClientPage({
 
   async function submitCreatePatient() {
     setCreateError(null);
-    if (!newName.trim()) {
-      setCreateError(isAr ? "يرجى إدخال الاسم" : "Please enter a name");
-      return;
+    setNewNameError(null);
+    setNewCodeError(null);
+    setNewPhoneError(null);
+    setNewAgeError(null);
+
+    let hasError = false;
+    if (!isTripleName(newName)) {
+      setNewNameError(
+        isAr
+          ? "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)"
+          : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
+      );
+      hasError = true;
+    }
+    const codeError = validatePatientCode(newCode, isAr);
+    if (codeError) {
+      setNewCodeError(codeError);
+      hasError = true;
+    }
+    const phoneError = validatePhone(newPhone, isAr);
+    if (phoneError) {
+      setNewPhoneError(phoneError);
+      hasError = true;
     }
     const parsedAge = newAge ? Number(newAge) : null;
     if (
       parsedAge !== null &&
       (!Number.isInteger(parsedAge) || parsedAge < 0 || parsedAge > 130)
     ) {
-      setCreateError(isAr ? "يرجى إدخال سن صحيح" : "Please enter a valid age");
-      return;
+      setNewAgeError(isAr ? "يرجى إدخال سن صحيح بين 0 و 130" : "Please enter a valid age from 0 to 130");
+      hasError = true;
     }
+    if (hasError) return;
     setCreatePending(true);
     try {
       const res = await fetch("/api/patients", {
@@ -379,7 +470,7 @@ export function AppointmentsClientPage({
         body: JSON.stringify({
           code: newCode,
           fullName: newName.trim(),
-          phone: newPhone.trim() || undefined,
+          phone: newPhone.trim(),
           dateOfBirth: parsedAge
             ? `${new Date().getFullYear() - parsedAge}-01-01`
             : undefined,
@@ -1054,10 +1145,20 @@ export function AppointmentsClientPage({
               value={newName}
               onChange={(e) => {
                 setNewName(e.target.value);
+                if (newNameError) {
+                  setNewNameError(
+                    isTripleName(e.target.value)
+                      ? null
+                      : isAr
+                        ? "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)"
+                        : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
+                  );
+                }
                 setStep1SimilarChecked(false);
               }}
               onBlur={() => void checkSimilarBeforeCreate(newName)}
               placeholder={isAr ? "اسم المريض" : "Patient name"}
+              error={newNameError ?? undefined}
             />
 
             {/* Similar warning in create step */}
@@ -1108,17 +1209,32 @@ export function AppointmentsClientPage({
             <Input
               label={isAr ? "كود المريض *" : "Patient Code *"}
               value={newCode}
-              onChange={(e) => setNewCode(e.target.value)}
+              onChange={(e) => {
+                setNewCode(e.target.value);
+                if (newCodeError) {
+                  setNewCodeError(validatePatientCode(e.target.value, isAr));
+                }
+              }}
+              onBlur={(e) => setNewCodeError(validatePatientCode(e.target.value, isAr))}
               minLength={2}
               maxLength={32}
-              pattern="[A-Za-z0-9_-]+"
+              pattern="[A-Za-z0-9_\\-]+"
               placeholder="PT-ABC123"
+              error={newCodeError ?? undefined}
             />
             <Input
-              label={isAr ? "رقم الهاتف" : "Phone"}
+              label={isAr ? "رقم الهاتف *" : "Phone *"}
               value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
-              placeholder={isAr ? "اختياري" : "Optional"}
+              onChange={(e) => {
+                setNewPhone(e.target.value);
+                if (newPhoneError) {
+                  setNewPhoneError(validatePhone(e.target.value, isAr));
+                }
+              }}
+              onBlur={(e) => setNewPhoneError(validatePhone(e.target.value, isAr))}
+              placeholder={isAr ? "01xxxxxxxxx" : "01xxxxxxxxx"}
+              required
+              error={newPhoneError ?? undefined}
             />
             <Input
               label={isAr ? "السن" : "Age"}
@@ -1126,8 +1242,22 @@ export function AppointmentsClientPage({
               value={newAge}
               min={0}
               max={130}
-              onChange={(e) => setNewAge(e.target.value)}
+              onChange={(e) => {
+                setNewAge(e.target.value);
+                if (newAgeError) {
+                  const age = e.target.value ? Number(e.target.value) : null;
+                  setNewAgeError(
+                    age !== null &&
+                      (!Number.isInteger(age) || age < 0 || age > 130)
+                      ? isAr
+                        ? "يرجى إدخال سن صحيح بين 0 و 130"
+                        : "Please enter a valid age from 0 to 130"
+                      : null,
+                  );
+                }
+              }}
               placeholder={isAr ? "مثال: 30" : "Example: 30"}
+              error={newAgeError ?? undefined}
             />
 
             <div className="flex justify-between pt-2">

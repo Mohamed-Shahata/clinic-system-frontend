@@ -26,18 +26,47 @@ function getTodayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function t(isAr: boolean, ar: string, en: string) {
+  return isAr ? ar : en;
+}
+
 /** يتحقق من أن الاسم ثلاثي على الأقل (3 أجزاء، كل جزء حرفان فأكثر) */
 function isTripleName(name: string): boolean {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   return parts.length >= 3 && parts.every((p) => p.length >= 2);
 }
 
+function validatePatientCode(value: string, isAr: boolean) {
+  if (!value.trim()) {
+    return t(isAr, "كود المريض مطلوب", "Patient code is required");
+  }
+  if (value.length < 2 || value.length > 32 || !/^[A-Za-z0-9_-]+$/.test(value)) {
+    return t(
+      isAr,
+      "كود المريض يجب أن يكون 2-32 حرفًا أو رقمًا، ويسمح بـ _ و - فقط",
+      "Patient code must be 2-32 letters or numbers, with only _ and - allowed",
+    );
+  }
+  return null;
+}
+
+function validatePhone(value: string, isAr: boolean) {
+  const phone = value.trim();
+  if (!phone) return t(isAr, "رقم الهاتف مطلوب", "Phone number is required");
+  if (!/^\+?[0-9\s-]{8,20}$/.test(phone)) {
+    return t(
+      isAr,
+      "رقم الهاتف غير صالح، أدخل 8 إلى 20 رقمًا",
+      "Phone number is invalid, enter 8 to 20 digits",
+    );
+  }
+  return null;
+}
+
 function patientErrorMessage(message: unknown, isAr: boolean) {
   const text = Array.isArray(message)
     ? message.join(" ")
     : String(message ?? "");
-
-  const t = (ar: string, en: string) => (isAr ? ar : en);
 
   if (
     text.toLowerCase().includes("insufficient role") ||
@@ -46,18 +75,21 @@ function patientErrorMessage(message: unknown, isAr: boolean) {
     text.toLowerCase().includes("permission")
   ) {
     return t(
+      isAr,
       "غير مسموح لك بإنشاء مريض — تواصل مع مدير العيادة",
       "You don't have permission to create patients — contact your clinic admin",
     );
   }
   if (text.includes("ثلاثي") || text.includes("isTripleName")) {
     return t(
+      isAr,
       "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)",
       "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
     );
   }
   if (text.includes("code") || text.includes("^[A-Za-z0-9_-]+$")) {
     return t(
+      isAr,
       "كود المريض مطلوب ويجب أن يكون من 2 إلى 32 حرفًا أو رقمًا فقط",
       "Patient code is required and must be 2-32 letters, numbers, underscores, or hyphens",
     );
@@ -68,21 +100,25 @@ function patientErrorMessage(message: unknown, isAr: boolean) {
     text.includes("duplicate")
   ) {
     return t(
+      isAr,
       "هذا الكود أو رقم الهاتف مسجل بالفعل — جرب كود آخر أو ابحث عن المريض",
       "This code or phone is already registered — try another code or search for the patient",
     );
   }
   if (text.includes("dateOfBirth")) {
-    return t("تاريخ الميلاد غير صالح", "Date of birth is invalid");
+    return t(isAr, "تاريخ الميلاد غير صالح", "Date of birth is invalid");
   }
   if (text.includes("phone") || text.includes("هاتف")) {
-    return t("رقم الهاتف مطلوب وغير صالح", "A valid phone number is required");
+    return t(isAr, "رقم الهاتف مطلوب وغير صالح", "A valid phone number is required");
   }
   if (
     text.toLowerCase().includes("network") ||
-    text.toLowerCase().includes("fetch")
+    text.toLowerCase().includes("fetch") ||
+    text.toLowerCase().includes("cannot reach") ||
+    text.toLowerCase().includes("econnrefused")
   ) {
     return t(
+      isAr,
       "خطأ في الاتصال بالخادم — تحقق من الإنترنت",
       "Network error — check your connection",
     );
@@ -90,6 +126,7 @@ function patientErrorMessage(message: unknown, isAr: boolean) {
   return typeof message === "string" && message
     ? message
     : t(
+        isAr,
         "تعذر تسجيل المريض، حاول مرة أخرى",
         "Failed to register patient, please try again",
       );
@@ -110,8 +147,11 @@ export function CreatePatientForm({
   const [fullName, setFullName] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [code, setCode] = useState(generateCode());
+  const [codeError, setCodeError] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [dateError, setDateError] = useState<string | null>(null);
   const [medicalNotes, setMedicalNotes] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -133,6 +173,12 @@ export function CreatePatientForm({
     e.preventDefault();
     setError(null);
     setCreated(null);
+    setNameError(null);
+    setCodeError(null);
+    setPhoneError(null);
+    setDateError(null);
+
+    let hasError = false;
 
     // Client-side triple name validation
     if (!isTripleName(fullName)) {
@@ -141,23 +187,31 @@ export function CreatePatientForm({
           ? "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)"
           : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
       );
-      return;
+      hasError = true;
     }
 
-    // Phone required client-side
-    if (!phone.trim()) {
-      setError(isAr ? "رقم الهاتف مطلوب" : "Phone number is required");
-      return;
+    const nextCodeError = validatePatientCode(code, isAr);
+    if (nextCodeError) {
+      setCodeError(nextCodeError);
+      hasError = true;
+    }
+
+    const nextPhoneError = validatePhone(phone, isAr);
+    if (nextPhoneError) {
+      setPhoneError(nextPhoneError);
+      hasError = true;
     }
 
     if (dateOfBirth && dateOfBirth > today) {
-      setError(
+      setDateError(
         isAr
           ? "تاريخ الميلاد لا يمكن أن يكون في المستقبل"
           : "Date of birth cannot be in the future",
       );
-      return;
+      hasError = true;
     }
+    if (hasError) return;
+
     setPending(true);
     try {
       const res = await fetch("/api/patients", {
@@ -214,10 +268,12 @@ export function CreatePatientForm({
                 label={isAr ? "كود المريض" : "Patient Code"}
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
+                onBlur={(e) => setCodeError(validatePatientCode(e.target.value, isAr))}
+                error={codeError ?? undefined}
                 required
                 minLength={2}
                 maxLength={32}
-                pattern="[A-Za-z0-9_-]+"
+                pattern="[A-Za-z0-9_\\-]+"
                 hint={
                   isAr
                     ? "تلقائي — يمكن تعديله"
@@ -243,9 +299,9 @@ export function CreatePatientForm({
               required
               minLength={6}
               value={fullName}
-              onChange={(e) => {
-                setFullName(e.target.value);
-                if (nameError) validateName(e.target.value);
+            onChange={(e) => {
+              setFullName(e.target.value);
+              if (nameError) validateName(e.target.value);
               }}
               onBlur={() => validateName(fullName)}
             />
@@ -258,7 +314,12 @@ export function CreatePatientForm({
             placeholder="+20 10x xxxx xxxx"
             required
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              if (phoneError) setPhoneError(validatePhone(e.target.value, isAr));
+            }}
+            onBlur={(e) => setPhoneError(validatePhone(e.target.value, isAr))}
+            error={phoneError ?? undefined}
           />
 
           <Input
@@ -266,7 +327,19 @@ export function CreatePatientForm({
             type="date"
             value={dateOfBirth}
             max={today}
-            onChange={(e) => setDateOfBirth(e.target.value)}
+            onChange={(e) => {
+              setDateOfBirth(e.target.value);
+              if (dateError) {
+                setDateError(
+                  e.target.value && e.target.value > today
+                    ? isAr
+                      ? "تاريخ الميلاد لا يمكن أن يكون في المستقبل"
+                      : "Date of birth cannot be in the future"
+                    : null,
+                );
+              }
+            }}
+            error={dateError ?? undefined}
           />
 
           {allowMedicalNotes && (

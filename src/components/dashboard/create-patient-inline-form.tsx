@@ -20,6 +20,35 @@ function isTripleName(name: string): boolean {
   return parts.length >= 3 && parts.every((p) => p.length >= 2);
 }
 
+function t(isAr: boolean, ar: string, en: string) {
+  return isAr ? ar : en;
+}
+
+function validatePatientCode(value: string, isAr: boolean) {
+  if (!value.trim()) return t(isAr, "كود المريض مطلوب", "Patient code is required");
+  if (value.length < 2 || value.length > 32 || !/^[A-Za-z0-9_-]+$/.test(value)) {
+    return t(
+      isAr,
+      "كود المريض يجب أن يكون 2-32 حرفًا أو رقمًا، ويسمح بـ _ و - فقط",
+      "Patient code must be 2-32 letters or numbers, with only _ and - allowed",
+    );
+  }
+  return null;
+}
+
+function validatePhone(value: string, isAr: boolean) {
+  const phone = value.trim();
+  if (!phone) return t(isAr, "رقم الهاتف مطلوب", "Phone number is required");
+  if (!/^\+?[0-9\s-]{8,20}$/.test(phone)) {
+    return t(
+      isAr,
+      "رقم الهاتف غير صالح، أدخل 8 إلى 20 رقمًا",
+      "Phone number is invalid, enter 8 to 20 digits",
+    );
+  }
+  return null;
+}
+
 function patientErrorMessage(message: unknown, isAr: boolean) {
   const text = Array.isArray(message)
     ? message.join(" ")
@@ -42,6 +71,16 @@ function patientErrorMessage(message: unknown, isAr: boolean) {
       ? "رقم الهاتف مطلوب وغير صالح"
       : "A valid phone number is required";
   }
+  if (
+    text.toLowerCase().includes("fetch") ||
+    text.toLowerCase().includes("network") ||
+    text.toLowerCase().includes("cannot reach") ||
+    text.toLowerCase().includes("econnrefused")
+  ) {
+    return isAr
+      ? "خطأ في الاتصال بالخادم — تحقق من الاتصال"
+      : "Network error — check your connection";
+  }
   return typeof message === "string" && message
     ? message
     : isAr
@@ -62,8 +101,11 @@ export function CreatePatientInlineForm({
   const [fullName, setFullName] = useState("");
   const [nameError, setNameError] = useState<string | null>(null);
   const [code, setCode] = useState(generatePatientCode);
+  const [codeError, setCodeError] = useState<string | null>(null);
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [age, setAge] = useState("");
+  const [ageError, setAgeError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,6 +123,12 @@ export function CreatePatientInlineForm({
 
   async function submit() {
     setError(null);
+    setNameError(null);
+    setCodeError(null);
+    setPhoneError(null);
+    setAgeError(null);
+
+    let hasError = false;
 
     if (!fullName.trim() || !isTripleName(fullName)) {
       setNameError(
@@ -88,12 +136,19 @@ export function CreatePatientInlineForm({
           ? "الاسم يجب أن يكون ثلاثياً (مثال: محمد علي حسن)"
           : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
       );
-      return;
+      hasError = true;
     }
 
-    if (!phone.trim()) {
-      setError(isAr ? "رقم الهاتف مطلوب" : "Phone number is required");
-      return;
+    const nextCodeError = validatePatientCode(code, isAr);
+    if (nextCodeError) {
+      setCodeError(nextCodeError);
+      hasError = true;
+    }
+
+    const nextPhoneError = validatePhone(phone, isAr);
+    if (nextPhoneError) {
+      setPhoneError(nextPhoneError);
+      hasError = true;
     }
 
     const parsedAge = age ? Number(age) : null;
@@ -101,9 +156,10 @@ export function CreatePatientInlineForm({
       parsedAge !== null &&
       (!Number.isInteger(parsedAge) || parsedAge < 0 || parsedAge > 130)
     ) {
-      setError(isAr ? "يرجى إدخال سن صحيح" : "Please enter a valid age");
-      return;
+      setAgeError(isAr ? "يرجى إدخال سن صحيح بين 0 و 130" : "Please enter a valid age from 0 to 130");
+      hasError = true;
     }
+    if (hasError) return;
     const derivedBirthDate =
       parsedAge !== null ? `${new Date().getFullYear() - parsedAge}-01-01` : "";
     setPending(true);
@@ -154,18 +210,28 @@ export function CreatePatientInlineForm({
       <Input
         label={isAr ? "كود المريض *" : "Patient Code *"}
         value={code}
-        onChange={(e) => setCode(e.target.value)}
+        onChange={(e) => {
+          setCode(e.target.value);
+          if (codeError) setCodeError(validatePatientCode(e.target.value, isAr));
+        }}
+        onBlur={(e) => setCodeError(validatePatientCode(e.target.value, isAr))}
         minLength={2}
         maxLength={32}
-        pattern="[A-Za-z0-9_-]+"
+        pattern="[A-Za-z0-9_\\-]+"
         placeholder="PT-ABC123"
+        error={codeError ?? undefined}
       />
       <Input
         label={isAr ? "رقم الهاتف *" : "Phone *"}
         value={phone}
-        onChange={(e) => setPhone(e.target.value)}
+        onChange={(e) => {
+          setPhone(e.target.value);
+          if (phoneError) setPhoneError(validatePhone(e.target.value, isAr));
+        }}
+        onBlur={(e) => setPhoneError(validatePhone(e.target.value, isAr))}
         placeholder={isAr ? "01xxxxxxxxx" : "01xxxxxxxxx"}
         required
+        error={phoneError ?? undefined}
       />
       <Input
         label={isAr ? "السن" : "Age"}
@@ -173,8 +239,22 @@ export function CreatePatientInlineForm({
         value={age}
         min={0}
         max={130}
-        onChange={(e) => setAge(e.target.value)}
+        onChange={(e) => {
+          setAge(e.target.value);
+          if (ageError) {
+            const nextAge = e.target.value ? Number(e.target.value) : null;
+            setAgeError(
+              nextAge !== null &&
+                (!Number.isInteger(nextAge) || nextAge < 0 || nextAge > 130)
+                ? isAr
+                  ? "يرجى إدخال سن صحيح بين 0 و 130"
+                  : "Please enter a valid age from 0 to 130"
+                : null,
+            );
+          }
+        }}
         placeholder={isAr ? "مثال: 20" : "Example: 20"}
+        error={ageError ?? undefined}
       />
       <p className="text-xs text-muted">
         {isAr
