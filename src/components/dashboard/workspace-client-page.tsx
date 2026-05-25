@@ -1,9 +1,7 @@
 "use client";
 
-import { buildPrescriptionHTML } from "@/lib/prescription-templates";
-import type { PrescriptionStyle } from "@/lib/prescription-templates";
-
-// @ts-ignore
+import { buildPrescriptionPDF } from "@/lib/prescription-pdf";
+import type { PrescriptionLang } from "@/lib/prescription-pdf";
 import { InstallmentsClient } from "@/components/dashboard/installments-client";
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useToast } from "@/components/ui/toast";
@@ -47,7 +45,13 @@ type PatientAttachment = {
   uploadedAt: string;
 };
 
-type MedicationRow = { name: string; dose: string; frequency: string };
+type MedicationRow = {
+  name: string;
+  dose: string;
+  frequency: string;
+  duration: string;
+  notes: string;
+};
 
 type CatalogMedication = {
   name: string;
@@ -75,6 +79,8 @@ const emptyMedication = (): MedicationRow => ({
   name: "",
   dose: "",
   frequency: "",
+  duration: "",
+  notes: "",
 });
 
 /* ── CatalogSelect: searchable dropdown from catalog ── */
@@ -247,6 +253,9 @@ export function WorkspaceClientPage({
   const [lastSavedPrescriptionId, setLastSavedPrescriptionId] = useState<
     string | null
   >(null);
+  const [rxLang, setRxLang] = useState<PrescriptionLang>(
+    locale === "ar" ? "ar" : "en",
+  );
 
   /* ── Prescription form state ── */
   const [diagnosis, setDiagnosis] = useState("");
@@ -601,21 +610,6 @@ export function WorkspaceClientPage({
       return;
     }
 
-    const meds = rows
-      .filter((row) => row.name.trim())
-      .map((row) =>
-        [row.name, row.dose, row.frequency].filter(Boolean).join(" - "),
-      );
-
-    const style: PrescriptionStyle =
-      (template?.header?.style as PrescriptionStyle | undefined) ?? "classic";
-
-    // Strip Arabic characters from clinic name — jsPDF/print doesn't support Arabic Unicode
-    const safeClinicName =
-      (template?.header?.clinicName ?? "")
-        .replace(/[^\x00-\x7F]/g, "")
-        .trim() || "Clinic";
-
     const ageNum = activeItem.patient.dateOfBirth
       ? Math.floor(
           (Date.now() - new Date(activeItem.patient.dateOfBirth).getTime()) /
@@ -623,12 +617,22 @@ export function WorkspaceClientPage({
         )
       : null;
 
-    const html = buildPrescriptionHTML(
+    const meds = rows
+      .filter((row) => row.name.trim())
+      .map((row) => ({
+        name: row.name,
+        dose: row.dose || undefined,
+        frequency: row.frequency || undefined,
+        duration: row.duration || undefined,
+        notes: row.notes || undefined,
+      }));
+
+    const html = buildPrescriptionPDF(
       {
         patient: {
           fullName: activeItem.patient.fullName,
           code: activeItem.patient.code,
-          phone: activeItem.patient.phone ?? undefined,
+          phone: activeItem.patient.phone,
           age: ageNum,
         },
         doctor: {
@@ -636,10 +640,10 @@ export function WorkspaceClientPage({
           specialty: doctorInfo.specialty ?? undefined,
         },
         clinic: {
-          name: safeClinicName,
+          name: template?.header?.clinicName ?? "",
           logoUrl: template?.header?.logoUrl ?? null,
-          address: template?.header?.address,
-          phone: template?.footer?.phone,
+          address: template?.header?.address ?? null,
+          phone: template?.footer?.phone ?? null,
         },
         diagnosis: diagnosis || undefined,
         medications: meds,
@@ -652,14 +656,15 @@ export function WorkspaceClientPage({
         notes: notes || undefined,
         issuedAt: new Date().toISOString(),
       },
-      style,
+      rxLang,
     );
 
     const win = window.open("", "_blank");
     if (!win) return;
     win.document.write(html);
     win.document.close();
-    setTimeout(() => win.print(), 600);
+    // Wait for fonts to load before triggering print
+    setTimeout(() => win.print(), 1200);
   }
 
   /* ── End visit (IN_PROGRESS → COMPLETED) ── */
@@ -1429,6 +1434,23 @@ export function WorkspaceClientPage({
                       >
                         {L.printRx}
                       </Button>
+                      {/* Lang toggle — عربي / English */}
+                      <div className="flex items-center rounded-lg border border-border overflow-hidden text-xs font-medium">
+                        <button
+                          type="button"
+                          onClick={() => setRxLang("ar")}
+                          className={`px-2.5 py-1.5 transition-colors ${rxLang === "ar" ? "bg-primary text-primary-fg" : "text-muted hover:bg-surface-2"}`}
+                        >
+                          ع
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRxLang("en")}
+                          className={`px-2.5 py-1.5 transition-colors ${rxLang === "en" ? "bg-primary text-primary-fg" : "text-muted hover:bg-surface-2"}`}
+                        >
+                          EN
+                        </button>
+                      </div>
                       <div className="flex-1" />
                       <Button
                         variant="secondary"

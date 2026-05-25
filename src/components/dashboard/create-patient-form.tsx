@@ -36,29 +36,63 @@ function patientErrorMessage(message: unknown, isAr: boolean) {
   const text = Array.isArray(message)
     ? message.join(" ")
     : String(message ?? "");
+
+  const t = (ar: string, en: string) => (isAr ? ar : en);
+
+  if (
+    text.toLowerCase().includes("insufficient role") ||
+    text.toLowerCase().includes("forbidden") ||
+    text.toLowerCase().includes("not allowed") ||
+    text.toLowerCase().includes("permission")
+  ) {
+    return t(
+      "غير مسموح لك بإنشاء مريض — تواصل مع مدير العيادة",
+      "You don't have permission to create patients — contact your clinic admin",
+    );
+  }
   if (text.includes("ثلاثي") || text.includes("isTripleName")) {
-    return isAr
-      ? "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)"
-      : "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)";
+    return t(
+      "الاسم يجب أن يكون ثلاثياً على الأقل (مثال: محمد علي حسن)",
+      "Full name must be at least 3 words (e.g. Mohamed Ali Hassan)",
+    );
   }
   if (text.includes("code") || text.includes("^[A-Za-z0-9_-]+$")) {
-    return isAr
-      ? "كود المريض مطلوب ويجب أن يكون من 2 إلى 32 حرفًا أو رقمًا فقط"
-      : "Patient code is required and must be 2-32 letters, numbers, underscores, or hyphens";
+    return t(
+      "كود المريض مطلوب ويجب أن يكون من 2 إلى 32 حرفًا أو رقمًا فقط",
+      "Patient code is required and must be 2-32 letters, numbers, underscores, or hyphens",
+    );
+  }
+  if (
+    text.toLowerCase().includes("already exists") ||
+    text.includes("unique") ||
+    text.includes("duplicate")
+  ) {
+    return t(
+      "هذا الكود أو رقم الهاتف مسجل بالفعل — جرب كود آخر أو ابحث عن المريض",
+      "This code or phone is already registered — try another code or search for the patient",
+    );
   }
   if (text.includes("dateOfBirth")) {
-    return isAr ? "تاريخ الميلاد غير صالح" : "Date of birth is invalid";
+    return t("تاريخ الميلاد غير صالح", "Date of birth is invalid");
   }
   if (text.includes("phone") || text.includes("هاتف")) {
-    return isAr
-      ? "رقم الهاتف مطلوب وغير صالح"
-      : "A valid phone number is required";
+    return t("رقم الهاتف مطلوب وغير صالح", "A valid phone number is required");
+  }
+  if (
+    text.toLowerCase().includes("network") ||
+    text.toLowerCase().includes("fetch")
+  ) {
+    return t(
+      "خطأ في الاتصال بالخادم — تحقق من الإنترنت",
+      "Network error — check your connection",
+    );
   }
   return typeof message === "string" && message
     ? message
-    : isAr
-      ? "تعذر تسجيل المريض"
-      : "Failed to register patient";
+    : t(
+        "تعذر تسجيل المريض، حاول مرة أخرى",
+        "Failed to register patient, please try again",
+      );
 }
 
 export function CreatePatientForm({
