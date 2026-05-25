@@ -273,7 +273,6 @@ export function CreatePatientForm({
                 required
                 minLength={2}
                 maxLength={32}
-                pattern="[A-Za-z0-9_\\-]+"
                 hint={
                   isAr
                     ? "تلقائي — يمكن تعديله"

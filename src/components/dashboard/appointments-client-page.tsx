@@ -1218,7 +1218,6 @@ export function AppointmentsClientPage({
               onBlur={(e) => setNewCodeError(validatePatientCode(e.target.value, isAr))}
               minLength={2}
               maxLength={32}
-              pattern="[A-Za-z0-9_\\-]+"
               placeholder="PT-ABC123"
               error={newCodeError ?? undefined}
             />

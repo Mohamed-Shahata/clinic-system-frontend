@@ -68,7 +68,8 @@ export default async function DoctorPatientsPage({
         </p>
       </div>
 
-      <PatientSearchList initialPatients={patients} />
+      {/* ✅ FIX: Pass patientBasePath="doctor" so links go to the correct role path */}
+      <PatientSearchList initialPatients={patients} patientBasePath="doctor" />
     </div>
   );
 }

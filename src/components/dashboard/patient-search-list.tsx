@@ -17,8 +17,11 @@ type Patient = {
 
 export function PatientSearchList({
   initialPatients,
+  patientBasePath,
 }: {
   initialPatients: Patient[];
+  /** e.g. "doctor" or "doctor-admin" — used to build /dashboard/{role}/patients/{id} */
+  patientBasePath?: "doctor" | "doctor-admin";
 }) {
   const locale = useLocale();
   const isAr = locale === "ar";
@@ -26,6 +29,9 @@ export function PatientSearchList({
   const [patients, setPatients] = useState(initialPatients);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  // Derive the correct patient detail path based on the consuming role
+  const role = patientBasePath ?? "doctor-admin";
 
   useEffect(() => {
     const controller = new AbortController();
@@ -40,8 +46,8 @@ export function PatientSearchList({
         .then((res) => res.json())
         .then((data) => {
           // FIX: Support paginated patient response while keeping old array fallback.
-          setPatients(Array.isArray(data) ? data : data.data ?? []);
-          setNextCursor(Array.isArray(data) ? null : data.nextCursor ?? null);
+          setPatients(Array.isArray(data) ? data : (data.data ?? []));
+          setNextCursor(Array.isArray(data) ? null : (data.nextCursor ?? null));
         })
         .catch(() => undefined);
     }, 250);
@@ -61,9 +67,9 @@ export function PatientSearchList({
         cache: "no-store",
       });
       const data = await res.json();
-      const more = Array.isArray(data) ? data : data.data ?? [];
+      const more = Array.isArray(data) ? data : (data.data ?? []);
       setPatients((current) => [...current, ...more]);
-      setNextCursor(Array.isArray(data) ? null : data.nextCursor ?? null);
+      setNextCursor(Array.isArray(data) ? null : (data.nextCursor ?? null));
     } finally {
       setLoadingMore(false);
     }
@@ -94,7 +100,7 @@ export function PatientSearchList({
               className="flex items-start justify-between gap-3 px-5 py-4 hover:bg-surface-2"
             >
               <Link
-                href={`/${locale}/dashboard/doctor-admin/patients/${p.id}`}
+                href={`/${locale}/dashboard/${role}/patients/${p.id}`}
                 className="min-w-0 flex-1 hover:text-primary transition-colors"
               >
                 <div className="flex items-center gap-2">
@@ -119,9 +125,9 @@ export function PatientSearchList({
                 )}
               </Link>
 
-              {/* Link to full patient file — same style as appointments page */}
+              {/* Link to full patient file */}
               <Link
-                href={`/${locale}/dashboard/doctor-admin/patients/${p.id}`}
+                href={`/${locale}/dashboard/${role}/patients/${p.id}`}
                 className="inline-flex h-8 shrink-0 items-center rounded border border-border bg-surface px-3 text-xs font-medium text-foreground hover:bg-surface-2 transition-colors"
               >
                 {isAr ? "ملف المريض" : "Patient file"}
