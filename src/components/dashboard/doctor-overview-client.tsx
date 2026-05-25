@@ -52,6 +52,17 @@ function MiniBarChart({
 }) {
   const max = Math.max(...data.map((d) => d.gross), 1);
   const today = new Date().getDate();
+
+  if (data.length === 0) {
+    return (
+      <div className="h-20 flex items-center justify-center text-xs text-muted">
+        {isAr
+          ? "لا توجد إيرادات مسجلة هذا الشهر"
+          : "No revenue recorded this month"}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-end gap-[3px] h-20 w-full">
       {data.map((d) => {
@@ -302,11 +313,13 @@ export function DoctorOverviewClient({
           </CardHeader>
           <CardBody>
             <MiniBarChart data={stats.dailyChart} isAr={isAr} />
-            <div className="flex justify-between mt-1 text-[10px] text-muted">
-              <span>1</span>
-              <span>{Math.ceil(stats.dailyChart.length / 2)}</span>
-              <span>{stats.dailyChart.length}</span>
-            </div>
+            {stats.dailyChart.length > 0 && (
+              <div className="flex justify-between mt-1 text-[10px] text-muted">
+                <span>1</span>
+                <span>{Math.ceil(stats.dailyChart.length / 2)}</span>
+                <span>{stats.dailyChart.length}</span>
+              </div>
+            )}
           </CardBody>
         </Card>
 

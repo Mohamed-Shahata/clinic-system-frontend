@@ -236,6 +236,25 @@ export function WorkspaceClientPage({
   const [activeItem, setActiveItem] = useState<QueueItem | null>(
     () => initialQueue.find((q) => q.status === "IN_PROGRESS") ?? null,
   );
+  // On mount: if there's a draft for the current active patient, it's already
+  // loaded above via loadDraft(). If the draft's appointmentId doesn't match
+  // the current activeItem (e.g. a different visit), clear the stale draft.
+  useEffect(() => {
+    const draft = loadDraft();
+    if (draft && activeItem && draft.appointmentId !== activeItem.id) {
+      try {
+        sessionStorage.removeItem(`workspace-draft-${doctorInfo.id}`);
+      } catch {
+        /* ignore */
+      }
+      setDiagnosis("");
+      setNotes("");
+      setRequestedTests([""]);
+      setRequestedImaging([""]);
+      setRows([emptyMedication()]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [loadingStart, setLoadingStart] = useState<string | null>(null);
   const [loadingEnd, setLoadingEnd] = useState(false);
   const [savingSystem, setSavingSystem] = useState(false);
@@ -257,12 +276,38 @@ export function WorkspaceClientPage({
     locale === "ar" ? "ar" : "en",
   );
 
-  /* ── Prescription form state ── */
-  const [diagnosis, setDiagnosis] = useState("");
-  const [notes, setNotes] = useState("");
-  const [requestedTests, setRequestedTests] = useState<string[]>([""]);
-  const [requestedImaging, setRequestedImaging] = useState<string[]>([""]);
-  const [rows, setRows] = useState<MedicationRow[]>([emptyMedication()]);
+  /* ── Prescription form state (draft restored from sessionStorage on mount) ── */
+  const DRAFT_KEY = `workspace-draft-${doctorInfo.id}`;
+
+  function loadDraft() {
+    try {
+      const raw = sessionStorage.getItem(DRAFT_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw) as {
+        appointmentId: string;
+        diagnosis: string;
+        notes: string;
+        requestedTests: string[];
+        requestedImaging: string[];
+        rows: MedicationRow[];
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  const _draft = loadDraft();
+  const [diagnosis, setDiagnosis] = useState(_draft?.diagnosis ?? "");
+  const [notes, setNotes] = useState(_draft?.notes ?? "");
+  const [requestedTests, setRequestedTests] = useState<string[]>(
+    _draft?.requestedTests ?? [""],
+  );
+  const [requestedImaging, setRequestedImaging] = useState<string[]>(
+    _draft?.requestedImaging ?? [""],
+  );
+  const [rows, setRows] = useState<MedicationRow[]>(
+    _draft?.rows ?? [emptyMedication()],
+  );
 
   /* ── Catalog tests (fetched client-side since backend has no tests catalog yet) ── */
   const [catalogTests, setCatalogTests] = useState<string[]>([]);
@@ -276,6 +321,34 @@ export function WorkspaceClientPage({
       )
       .catch(() => null);
   }, []);
+
+  /* ── Autosave draft to sessionStorage on every form change ── */
+  useEffect(() => {
+    if (!activeItem) return;
+    try {
+      sessionStorage.setItem(
+        `workspace-draft-${doctorInfo.id}`,
+        JSON.stringify({
+          appointmentId: activeItem.id,
+          diagnosis,
+          notes,
+          requestedTests,
+          requestedImaging,
+          rows,
+        }),
+      );
+    } catch {
+      /* storage quota exceeded or private mode — silent */
+    }
+  }, [
+    activeItem,
+    diagnosis,
+    notes,
+    requestedTests,
+    requestedImaging,
+    rows,
+    doctorInfo.id,
+  ]);
 
   /* ── Labels ── */
   const L = {
@@ -397,6 +470,12 @@ export function WorkspaceClientPage({
     setUploadFiles([]);
     setPatientAttachments([]);
     setPreviewAttachment(null);
+    // Clear draft so stale data doesn't restore on the next patient
+    try {
+      sessionStorage.removeItem(`workspace-draft-${doctorInfo.id}`);
+    } catch {
+      /* ignore */
+    }
   }
 
   /* ── Fetch existing patient attachments ── */
