@@ -227,6 +227,7 @@ interface PhoneInputProps {
   className?: string;
   label?: string;
   locale?: string;
+  placeholder?: string;
 }
 
 export function PhoneInput({
@@ -237,6 +238,7 @@ export function PhoneInput({
   className = "",
   label,
   locale = "en",
+  placeholder,
 }: PhoneInputProps) {
   const parsed = parseValue(value);
   const [selectedCountry, setSelectedCountry] = useState<Country>(
