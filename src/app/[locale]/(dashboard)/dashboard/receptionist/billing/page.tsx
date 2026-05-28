@@ -49,6 +49,7 @@ export default async function BillingPage({
       patients={patients}
       invoices={invoices as never}
       locale={locale}
+      clinicName={session?.clinicName ?? ""}
       canExport={false}
     />
   );

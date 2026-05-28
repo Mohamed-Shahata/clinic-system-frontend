@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
-import { useLocale } from "next-intl";
 import { useToast } from "@/components/ui/toast";
 import {
-  Alert,
   Badge,
   Button,
   Card,
@@ -13,6 +11,8 @@ import {
   EmptyState,
   Modal,
 } from "@/components/ui";
+import { buildInvoicePDF } from "@/lib/invoice-pdf";
+import type { InvoiceLang } from "@/lib/invoice-pdf";
 
 type Patient = { id: string; code: string; fullName: string };
 type ServiceCatalog = {
@@ -429,11 +429,13 @@ export function BillingClientPage({
   patients,
   locale,
   canExport = true,
+  clinicName = "",
 }: {
   invoices: Invoice[];
   patients: Patient[];
   locale: string;
   canExport?: boolean;
+  clinicName?: string;
 }) {
   const isAr = locale === "ar";
   const { addToast } = useToast();
@@ -441,6 +443,9 @@ export function BillingClientPage({
   const [catalogServices, setCatalogServices] = useState<ServiceCatalog[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [dateFilter, setDateFilter] = useState(dateInputValue(new Date()));
+  const [rxLang, setRxLang] = useState<InvoiceLang>(
+    locale === "ar" ? "ar" : "en",
+  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
@@ -505,6 +510,44 @@ export function BillingClientPage({
     }
   };
 
+  function printInvoice(inv: Invoice) {
+    const svcs = Array.isArray(inv.services)
+      ? (inv.services as InvoiceService[]).map((s) => ({
+          name: s.name,
+          amount: Number(s.amount),
+        }))
+      : [];
+
+    const html = buildInvoicePDF(
+      {
+        invoice: {
+          id: inv.id,
+          totalAmount: Number(inv.totalAmount),
+          paidAmount: Number(inv.paidAmount ?? inv.totalAmount),
+          status: inv.status,
+          paymentMethod: inv.paymentMethod,
+          notes: inv.notes ?? null,
+          createdAt: inv.createdAt,
+          services: svcs,
+        },
+        patient: {
+          fullName: inv.patient?.fullName ?? "—",
+          code: inv.patient?.code ?? "—",
+          phone: null,
+        },
+        clinic: { name: clinicName },
+        doctor: null,
+      },
+      rxLang,
+    );
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+    setTimeout(() => win.print(), 1200);
+  }
+
   function exportCsv() {
     // FIX: Trigger browser download for clinic-scoped invoice CSV export.
     window.location.href = "/api/billing/invoices/export/csv";
@@ -524,7 +567,24 @@ export function BillingClientPage({
               : "Create invoices and record payments"}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center flex-wrap">
+          {/* Lang toggle for invoice printing */}
+          <div className="flex items-center rounded-lg border border-border overflow-hidden text-xs font-medium">
+            <button
+              type="button"
+              onClick={() => setRxLang("ar")}
+              className={`px-2.5 py-1.5 transition-colors ${rxLang === "ar" ? "bg-primary text-primary-fg" : "text-muted hover:bg-surface-2"}`}
+            >
+              ع
+            </button>
+            <button
+              type="button"
+              onClick={() => setRxLang("en")}
+              className={`px-2.5 py-1.5 transition-colors ${rxLang === "en" ? "bg-primary text-primary-fg" : "text-muted hover:bg-surface-2"}`}
+            >
+              EN
+            </button>
+          </div>
           {canExport && (
             <Button variant="secondary" onClick={exportCsv}>
               {isAr ? "تصدير CSV" : "Export CSV"}
@@ -661,12 +721,21 @@ export function BillingClientPage({
                             : "Cash"
                           : "Vodafone Cash"}
                       </p>
-                      <button
-                        onClick={() => setDeleteTarget(inv.id)}
-                        className="text-xs text-danger/70 hover:text-danger px-2 py-0.5 rounded hover:bg-danger/10 transition-colors"
-                      >
-                        {isAr ? "حذف" : "Delete"}
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => printInvoice(inv)}
+                          className="text-xs text-primary/70 hover:text-primary px-2 py-0.5 rounded hover:bg-primary/10 transition-colors"
+                          title={isAr ? "طباعة الفاتورة" : "Print Invoice"}
+                        >
+                          🖨
+                        </button>
+                        <button
+                          onClick={() => setDeleteTarget(inv.id)}
+                          className="text-xs text-danger/70 hover:text-danger px-2 py-0.5 rounded hover:bg-danger/10 transition-colors"
+                        >
+                          {isAr ? "حذف" : "Delete"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
