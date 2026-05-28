@@ -33,7 +33,6 @@ export function CreateClinicForm({
 
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [timezone, setTimezone] = useState("Africa/Cairo");
   const [adminFullName, setAdminFullName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
   const [adminPhone, setAdminPhone] = useState("");
@@ -119,7 +118,13 @@ export function CreateClinicForm({
       return;
     }
     if (!adminEmail.trim()) {
-      setError(isAr ? "اسم مستخدم الطبيب مطلوب" : "Doctor username is required");
+      setError(
+        isAr ? "البريد الإلكتروني للطبيب مطلوب" : "Doctor email is required",
+      );
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim())) {
+      setError(isAr ? "البريد الإلكتروني غير صالح" : "Invalid email address");
       return;
     }
     if (!adminPassword) {
@@ -153,7 +158,7 @@ export function CreateClinicForm({
         body: JSON.stringify({
           name,
           slug,
-          timezone,
+          timezone: "Africa/Cairo",
           defaultLocale: locale,
           adminFullName: adminFullName.trim() || undefined,
           adminEmail: adminEmail.trim() || undefined,
@@ -222,23 +227,6 @@ export function CreateClinicForm({
                 : "Lowercase letters, numbers, hyphens only"
             }
           />
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-foreground">
-              {isAr ? "المنطقة الزمنية" : "Timezone"}
-            </label>
-            <select
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="w-full rounded border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none ring-primary/30 focus:ring-2"
-            >
-              <option value="Africa/Cairo">Africa/Cairo (EET, UTC+2/+3)</option>
-              <option value="Asia/Riyadh">Asia/Riyadh (AST, UTC+3)</option>
-              <option value="Asia/Dubai">Asia/Dubai (GST, UTC+4)</option>
-              <option value="Europe/London">Europe/London (GMT/BST)</option>
-              <option value="UTC">UTC</option>
-            </select>
-          </div>
-
           {/* Doctor Admin */}
           <div className="border-t border-card-border pt-4 space-y-4">
             <p className="text-xs font-medium text-muted uppercase tracking-wide">
@@ -252,34 +240,22 @@ export function CreateClinicForm({
               onChange={(e) => setAdminFullName(e.target.value)}
             />
 
-            {/* Email OR Phone - both optional, at least one */}
+            {/* Email + Phone */}
             <div className="grid gap-3 sm:grid-cols-2">
               <Input
-                label={isAr ? "اسم مستخدم الطبيب" : "Doctor username"}
-                placeholder="doctor.name"
+                label={isAr ? "البريد الإلكتروني *" : "Email *"}
+                type="email"
+                placeholder="doctor@example.com"
                 required
                 value={adminEmail}
                 onChange={(e) => setAdminEmail(e.target.value)}
-                hint={
-                  isAr
-                    ? "سيتم إنشاء الإيميل تلقائياً: الاسم@clinic.com"
-                    : "Email will be created as username@clinic.com"
-                }
               />
               <PhoneInput
                 label={isAr ? "رقم الهاتف (اختياري)" : "Phone (optional)"}
                 value={adminPhone}
                 onChange={setAdminPhone}
-                placeholder="1000000000"
               />
             </div>
-            {adminEmail && adminPhone && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs text-primary">
-                {isAr
-                  ? "سيتم ربط كلا الطريقتين بنفس الحساب"
-                  : "Both login methods will be linked to the same account"}
-              </div>
-            )}
 
             <Input
               label={isAr ? "كلمة المرور" : "Admin Password"}
